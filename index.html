@@ -479,27 +479,29 @@ body{background:var(--bg);font-family:'DM Sans',sans-serif;color:#fff;overflow:h
 .lvl-popup{position:absolute;left:50%;top:40%;font-family:'Orbitron',monospace;font-size:22px;color:#fff;font-weight:900;pointer-events:none;animation:lvlup 2s ease forwards;text-shadow:0 0 30px var(--c1);z-index:30;white-space:nowrap;}
 /* blob lobby */
 .panel{background:rgba(0,0,0,.6);backdrop-filter:blur(5px);border-radius:12px;border:1px solid rgba(255,255,255,.1);color:#fff;padding:15px;position:absolute;box-shadow:0 4px 15px rgba(0,0,0,.5);}
-#blob-lobby{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse 80% 60% at 50% 50%,#12042e 0%,var(--bg) 70%);z-index:5;}
+#blob-lobby{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:max(60px,8vh);padding-bottom:24px;overflow-y:auto;background:radial-gradient(ellipse 80% 60% at 50% 50%,#12042e 0%,var(--bg) 70%);z-index:5;}
 #blob-lobby canvas{position:absolute;inset:0;pointer-events:none;}
 .lobby-card{background:rgba(13,13,31,.88);backdrop-filter:blur(30px);border:1px solid rgba(0,245,196,.15);
-  border-radius:28px;padding:36px 44px;width:min(520px,92vw);position:relative;overflow-y:auto;max-height:92vh;}
+  border-radius:28px;padding:28px 36px 28px;width:min(480px,94vw);position:relative;}
 .lobby-card::before{content:'';position:absolute;inset:-1px;border-radius:28px;
   background:linear-gradient(135deg,rgba(0,245,196,.1),transparent,rgba(124,58,237,.1));
   -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
   -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;}
-.logo-wrap{text-align:center;margin-bottom:32px;position:relative;}
+.logo-wrap{text-align:center;margin-bottom:20px;position:relative;}
 @keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
 .logo-sub2{font-family:'Orbitron',monospace;font-size:10px;letter-spacing:6px;text-transform:uppercase;color:rgba(255,255,255,.28);margin-top:6px;}
 .lobby-tabs{display:flex;gap:0;margin-bottom:20px;background:rgba(255,255,255,.04);border-radius:12px;padding:4px;}
 .ltab{flex:1;padding:9px;text-align:center;font-family:'Orbitron',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.3);border-radius:9px;cursor:none;transition:all .2s;}
 .ltab.on{background:rgba(0,245,196,.12);color:var(--c1);}
-.emoji-picker{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:6px;}
-.ep-btn{font-size:18px;background:rgba(255,255,255,.04);border:2px solid rgba(255,255,255,.08);border-radius:10px;
-  width:100%;aspect-ratio:1;cursor:none;transition:all .2s;display:flex;align-items:center;justify-content:center;}
-.ep-btn:hover,.ep-btn.sel{border-color:var(--c1);background:rgba(0,245,196,.1);transform:scale(1.08);}
+.emoji-picker{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:8px;}
+.ep-btn{font-size:18px;background:rgba(255,255,255,.04);border:2px solid rgba(255,255,255,.07);border-radius:10px;
+  width:100%;height:44px;cursor:none;transition:border-color .15s,background .15s,box-shadow .15s;
+  display:flex;align-items:center;justify-content:center;line-height:1;flex-shrink:0;}
+.ep-btn:hover{border-color:rgba(0,245,196,.4);background:rgba(0,245,196,.08);}
+.ep-btn.sel{border-color:var(--c1);background:rgba(0,245,196,.15);box-shadow:0 0 8px rgba(0,245,196,.25);}
 .color-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:6px;}
 .col-swatch{width:100%;aspect-ratio:1;border-radius:10px;border:3px solid transparent;cursor:none;transition:all .2s;}
-.col-swatch:hover{transform:scale(1.1);}
+.col-swatch:hover{box-shadow:0 0 0 2px rgba(255,255,255,.3);}
 .col-swatch.sel{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.2),0 0 12px rgba(0,245,196,.3);}
 .skin-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
 .skin-btn{flex:1;min-width:56px;height:44px;border-radius:10px;border:2px solid rgba(255,255,255,.1);
@@ -508,20 +510,13 @@ body{background:var(--bg);font-family:'DM Sans',sans-serif;color:#fff;overflow:h
 .skin-btn canvas{width:40px;height:28px;border-radius:4px;}
 .tag-row{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;margin-top:6px;}
 .tag-col{width:100%;aspect-ratio:1;border-radius:50%;border:2px solid rgba(255,255,255,.1);cursor:none;transition:all .2s;}
-.tag-col:hover,.tag-col.sel{border-color:#fff;transform:scale(1.15);box-shadow:0 0 8px currentColor;}
+.tag-col:hover,.tag-col.sel{border-color:#fff;box-shadow:0 0 8px currentColor;}
 .tag-badge-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
 .tag-badge{padding:5px 10px;border-radius:20px;font-size:10px;background:rgba(255,255,255,.05);
   border:1px solid rgba(255,255,255,.1);cursor:none;transition:all .2s;font-family:'Orbitron',monospace;letter-spacing:1px;white-space:nowrap;}
 .tag-badge:hover,.tag-badge.sel{border-color:var(--c1);background:rgba(0,245,196,.1);color:var(--c1);}
-.symbol-row{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:6px;}
-.sym-btn{width:100%;aspect-ratio:1;border-radius:10px;border:2px solid rgba(255,255,255,.08);
-  background:rgba(255,255,255,.03);cursor:none;transition:all .2s;font-size:16px;
-  display:flex;align-items:center;justify-content:center;}
-.sym-btn:hover,.sym-btn.sel{border-color:var(--c1);background:rgba(0,245,196,.1);}
-.sym-input{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;
-  padding:8px 12px;color:#fff;font-size:15px;width:68px;outline:none;text-align:center;cursor:none;font-family:'DM Sans',sans-serif;}
-.sym-input:focus{border-color:rgba(0,245,196,.4);}
-.preview-wrap{display:flex;justify-content:center;margin:14px 0 4px;}
+
+.preview-wrap{display:flex;justify-content:center;margin:10px 0 0;}
 #blob-preview{border-radius:50%;display:block;}
 #blob-preview2{border-radius:50%;display:block;}
 .lobby-lb{margin-top:24px;padding-top:20px;border-top:1px solid var(--border);}
@@ -536,7 +531,7 @@ body{background:var(--bg);font-family:'DM Sans',sans-serif;color:#fff;overflow:h
   font-size:9px;letter-spacing:2px;color:rgba(255,255,255,.5);cursor:none;transition:all .2s;pointer-events:auto;}
 .back-hub:hover{color:var(--c1);border-color:rgba(0,245,196,.3);}
 /* cust section */
-.cust-section{margin-bottom:18px;}
+.cust-section{margin-bottom:14px;}
 /* ── TRIVIA APP ── */
 #trivia-screen{flex-direction:column;background:#0a0a14;overflow:hidden;}
 #trivia-root{flex:1;overflow-y:auto;width:100%;background:#0a0a14;}
@@ -747,24 +742,18 @@ body{background:var(--bg);font-family:'DM Sans',sans-serif;color:#fff;overflow:h
         <div class="ltab" id="ltab-room" onclick="lobbyTab('room')">Room</div>
       </div>
       <!-- Profile Tab -->
-      <div id="lpanel-profile">
+      <div id="lpanel-profile" style="min-height:320px">
         <div class="field-group"><label>Your Name</label>
           <input type="text" id="inp-name" placeholder="Enter your username…" maxlength="20" onkeydown="if(event.key==='Enter')createRoom()"/>
         </div>
         <div class="cust-section">
-          <div class="field-group" style="margin-bottom:10px"><label>Emoji Face</label><div class="emoji-picker" id="emoji-pick"></div></div>
-          <div class="field-group" style="margin-bottom:0"><label>or Symbol / Initials</label>
-            <div class="symbol-row" id="symbol-presets"></div>
-            <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
-              <input class="sym-input" type="text" id="sym-custom" maxlength="2" placeholder="AB"/>
-              <span style="font-size:11px;color:rgba(255,255,255,.22)">1–2 chars</span>
-            </div>
-          </div>
+          <div class="field-group" style="margin-bottom:0"><label>Choose Your Face</label><div class="emoji-picker" id="emoji-pick"></div></div>
+
         </div>
         <div class="preview-wrap"><canvas id="blob-preview" width="90" height="90"></canvas></div>
       </div>
       <!-- Bob Style Tab -->
-      <div id="lpanel-blobstyle" style="display:none">
+      <div id="lpanel-blobstyle" style="display:none;min-height:320px">
         <div class="cust-section"><label class="t-label">Blob Color</label><div class="color-row" id="blob-color-row"></div></div>
         <div class="cust-section"><label class="t-label">Skin Pattern</label><div class="skin-row" id="skin-row"></div></div>
         <div class="cust-section"><label class="t-label">Name Tag Color</label><div class="tag-row" id="tag-color-row"></div></div>
@@ -772,7 +761,7 @@ body{background:var(--bg);font-family:'DM Sans',sans-serif;color:#fff;overflow:h
         <div class="preview-wrap"><canvas id="blob-preview2" width="90" height="90"></canvas></div>
       </div>
       <!-- Room Tab -->
-      <div id="lpanel-room" style="display:none">
+      <div id="lpanel-room" style="display:none;min-height:320px">
         <div class="field-group"><label>Room Code <span style="color:rgba(255,255,255,.18);font-size:9px;text-transform:none;letter-spacing:0">(blank = create new)</span></label>
           <input type="text" id="inp-room" placeholder="e.g. ARENA7" maxlength="8" style="text-transform:uppercase" onkeydown="if(event.key==='Enter')joinRoom()"/>
         </div>
@@ -1150,10 +1139,10 @@ const foodCols=["#55ff88","#ffdd55","#ff77aa","#66ffff","#ffaa33","#ff6655","#aa
 const tagCols=['#00f5c4','#f43f5e','#60a5fa','#f59e0b','#e879f9','#4ade80','#fb923c','#ffffff'];
 const skinDefs=[{id:'none',label:'Clean'},{id:'stripes',label:'Stripes'},{id:'dots',label:'Dots'},{id:'gradient',label:'Dual'},{id:'diamond',label:'Geo'}];
 const badges=['','★ ','👑 ','⚡ ','🔥 ','💎 ','🎯 '];
-const symbolPresets=['★','♦','♠','✦','⬡','▲','◉','✿','⚡','∞'];
+
 
 let myName='',myRoom='',myEmoji='😎',myColor=blobCols[0];
-let mySkin='none',myTagColor='#00f5c4',myTagBadge='',mySymbol='';
+let mySkin='none',myTagColor='#00f5c4',myTagBadge='',mySymbol='';// symbols deprecated — emoji only
 let player={},bots=[],foods=[],viruses=[],netPlayers=[];
 let bid=1,lbData={};
 
@@ -1189,23 +1178,13 @@ function initBlobLobby(){
 
   const ep=document.getElementById('emoji-pick');
   if(ep.children.length===0){
-    emojis.slice(0,14).forEach((em,i)=>{
+    emojis.forEach((em,i)=>{
       const b=document.createElement('button');
       b.className='ep-btn'+(i===0?' sel':'');b.textContent=em;
-      b.onclick=()=>{myEmoji=em;mySymbol='';document.getElementById('sym-custom').value='';
+      b.onclick=()=>{myEmoji=em;mySymbol='';
         document.querySelectorAll('.ep-btn').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');updatePreviews();};
       ep.appendChild(b);
     });
-    // Symbols
-    const sp2=document.getElementById('symbol-presets');
-    symbolPresets.forEach(s=>{
-      const b=document.createElement('button');b.className='sym-btn';b.textContent=s;
-      b.onclick=()=>{mySymbol=s;document.querySelectorAll('.sym-btn').forEach(x=>x.classList.remove('sel'));
-        b.classList.add('sel');document.querySelectorAll('.ep-btn').forEach(x=>x.classList.remove('sel'));updatePreviews();};
-      sp2.appendChild(b);
-    });
-    document.getElementById('sym-custom').oninput=function(){
-      mySymbol=this.value||'';document.querySelectorAll('.sym-btn,.ep-btn').forEach(x=>x.classList.remove('sel'));updatePreviews();};
     // Colors
     const cr=document.getElementById('blob-color-row');
     blobCols.forEach((c,i)=>{
@@ -1342,7 +1321,7 @@ function startBlobGame(name,room){
 
 function initPlayer(){
   player={x:WORLD/2+(Math.random()-.5)*600,y:WORLD/2+(Math.random()-.5)*600,
-    r:30,score:0,speed:1.6,emoji:myEmoji,symbol:mySymbol,color:myColor,skin:mySkin,
+    r:30,score:0,speed:2.4,emoji:myEmoji,symbol:mySymbol,color:myColor,skin:mySkin,
     tagColor:myTagColor,tagBadge:myTagBadge,name:myName,isPlayer:true,level:1};
 }
 
@@ -1431,7 +1410,7 @@ function spawnBots(n=38){for(let i=bots.length;i<n;i++){const s=16+Math.random()
 // ── Game Logic ──
 function movePlayer(){
   if(gulping)return;
-  const spd=Math.max(0.3,player.speed*Math.pow(24/Math.max(player.r,24),0.85));
+  const spd=Math.max(0.55,player.speed*Math.pow(26/Math.max(player.r,26),0.8));
   let kdx=0,kdy=0;
   if(keys.ArrowLeft||keys.KeyA)kdx-=1;if(keys.ArrowRight||keys.KeyD)kdx+=1;
   if(keys.ArrowUp||keys.KeyW)kdy-=1;if(keys.ArrowDown||keys.KeyS)kdy+=1;
@@ -1644,11 +1623,18 @@ const T={
         body:JSON.stringify({prompt:`Generate exactly ${this.data.num||10} trivia MCQ questions. Category: ${cats.join(', ')}. Difficulty: ${this.data.diff||'medium'}. Return ONLY a raw JSON object (no markdown, no explanation): {"questions":[{"question":"...","options":["A","B","C","D"],"correctAnswer":0,"category":"..."}]}`})
       });
       const d=await res.json();
-      if(d.error)throw new Error(d.error);
+      if(!res.ok||d.error){
+        const detail=(d.details||[]).join(' | ');
+        throw new Error((d.error||'Request failed')+(detail?' — '+detail:''));
+      }
       const txt=(d.text||'').replace(/```json\n?|```/g,'').trim();
       let parsed;try{parsed=JSON.parse(txt);}catch(e){const m=txt.match(/\{[\s\S]*\}/);parsed=JSON.parse(m?m[0]:txt);}
       this.show('game',{questions:parsed.questions,cur:0,score:0,log:[],answered:false,sel:null,backTo:'home'});
-    }catch(e){alert('Quiz generation failed. Please try again.');this.show('quick-play');}
+    }catch(e){
+      const msg=e?.message||'Unknown error';
+      alert('Quiz generation failed.\n\n'+msg);
+      this.show('quick-play');
+    }
   },
 
   // ── NO KEY SCREEN (auto-redirects) ──
@@ -1816,7 +1802,10 @@ const T={
       let parsed;try{parsed=JSON.parse(txt2);}catch(e){const m=txt2.match(/\{[\s\S]*\}/);parsed=JSON.parse(m?m[0]:txt2);}
       const room=await fbGet('trivia/rooms/'+roomCode);
       await fbSet('trivia/rooms/'+roomCode,{...room,status:'playing',questions:(parsed||{}).questions||[]});
-    }catch(e){alert('Failed to start. Try again.');if(btn){btn.disabled=false;btn.textContent='Start Game';}}
+    }catch(e){
+      alert('Failed to start.\n\n'+(e?.message||'Unknown error'));
+      if(btn){btn.disabled=false;btn.textContent='Start Game';}
+    }
   },
 
   // ── QUIZ CREATOR ──
