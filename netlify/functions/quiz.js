@@ -3,19 +3,54 @@
 // Fallback: Groq Llama 3 70B       (free, 14400 req/day)
 
 exports.handler = async (event) => {
+  // CORS preflight
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      },
+      body: '',
+    };
+  }
+
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
 
-  let body;
-  try { body = JSON.parse(event.body); }
-  catch { return { statusCode: 400, body: JSON.stringify({ error: 'Invalid JSON' }) }; }
+  const CORS = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+  };
 
-  const prompt = body.prompt || '';
-  if (!prompt) return { statusCode: 400, body: JSON.stringify({ error: 'No prompt' }) };
+  // Parse body
+  let prompt = '';
+  try {
+    const body = JSON.parse(event.body || '{}');
+    prompt = body.prompt || '';
+  } catch (e) {
+    return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Invalid JSON body' }) };
+  }
+
+  if (!prompt) {
+    return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Missing prompt' }) };
+  }
 
   const GEMINI_KEY = process.env.GEMINI_KEY;
   const GROQ_KEY   = process.env.GROQ_KEY;
+
+  // Sanity check — at least one key must exist
+  if (!GEMINI_KEY && !GROQ_KEY) {
+    return {
+      statusCode: 500,
+      headers: CORS,
+      body: JSON.stringify({ error: 'No API keys configured. Add GEMINI_KEY or GROQ_KEY in Netlify environment variables.' }),
+    };
+  }
+
+  const errors = [];
 
   // ── Try Gemini first ──
   if (GEMINI_KEY) {
@@ -31,17 +66,23 @@ exports.handler = async (event) => {
           }),
         }
       );
+
+      const data = await res.json();
+
       if (res.ok) {
-        const data = await res.json();
         const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        if (text) return {
-          statusCode: 200,
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-          body: JSON.stringify({ text, provider: 'gemini' }),
-        };
+        if (text) {
+          return { statusCode: 200, headers: CORS, body: JSON.stringify({ text, provider: 'gemini' }) };
+        }
+        errors.push(`Gemini OK but empty text. Response: ${JSON.stringify(data).slice(0,200)}`);
+      } else {
+        errors.push(`Gemini ${res.status}: ${JSON.stringify(data).slice(0,200)}`);
       }
-      console.log('Gemini failed status:', res.status, '— falling back to Groq');
-    } catch (e) { console.log('Gemini error:', e.message); }
+    } catch (e) {
+      errors.push(`Gemini exception: ${e.message}`);
+    }
+  } else {
+    errors.push('GEMINI_KEY not set');
   }
 
   // ── Fallback: Groq ──
@@ -60,21 +101,32 @@ exports.handler = async (event) => {
           max_tokens: 2048,
         }),
       });
+
+      const data = await res.json();
+
       if (res.ok) {
-        const data = await res.json();
         const text = data?.choices?.[0]?.message?.content || '';
-        if (text) return {
-          statusCode: 200,
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-          body: JSON.stringify({ text, provider: 'groq' }),
-        };
+        if (text) {
+          return { statusCode: 200, headers: CORS, body: JSON.stringify({ text, provider: 'groq' }) };
+        }
+        errors.push(`Groq OK but empty text. Response: ${JSON.stringify(data).slice(0,200)}`);
+      } else {
+        errors.push(`Groq ${res.status}: ${JSON.stringify(data).slice(0,200)}`);
       }
-      console.log('Groq failed status:', res.status);
-    } catch (e) { console.log('Groq error:', e.message); }
+    } catch (e) {
+      errors.push(`Groq exception: ${e.message}`);
+    }
+  } else {
+    errors.push('GROQ_KEY not set');
   }
 
+  // Both failed — return details so you can debug
   return {
     statusCode: 503,
-    body: JSON.stringify({ error: 'Both AI providers unavailable. Please try again shortly.' }),
+    headers: CORS,
+    body: JSON.stringify({
+      error: 'Both AI providers failed',
+      details: errors,
+    }),
   };
 };
