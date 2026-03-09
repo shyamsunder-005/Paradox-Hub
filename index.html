@@ -102,6 +102,60 @@ body{background:var(--bg);font-family:'DM Sans',sans-serif;color:#fff;overflow:h
   letter-spacing:3px;color:rgba(255,255,255,0.15);}
 .hub-footer span{color:rgba(0,245,196,0.5);}
 
+/* Hub leaderboard sidebar */
+.hub-lb-panel{position:absolute;left:24px;top:50%;transform:translateY(-50%);
+  width:220px;background:rgba(13,13,31,.9);backdrop-filter:blur(20px);
+  border:1px solid rgba(255,255,255,.07);border-radius:20px;padding:18px 16px;z-index:5;}
+.hub-lb-title{font-family:'Orbitron',monospace;font-size:8px;letter-spacing:3px;
+  color:rgba(255,255,255,.3);margin-bottom:12px;text-align:center;text-transform:uppercase;}
+.hub-lb-tabs{display:flex;background:rgba(255,255,255,.04);border-radius:8px;padding:3px;margin-bottom:12px;gap:2px;}
+.hub-lb-tab{flex:1;font-family:'Orbitron',monospace;font-size:7px;letter-spacing:1px;
+  padding:5px 2px;border-radius:6px;text-align:center;cursor:none;transition:all .2s;
+  color:rgba(255,255,255,.3);text-transform:uppercase;}
+.hub-lb-tab.on{background:rgba(0,245,196,.12);color:var(--c1);}
+.hub-lb-row{display:flex;align-items:center;gap:8px;padding:6px 4px;
+  border-bottom:1px solid rgba(255,255,255,.03);cursor:none;}
+.hub-lb-row:last-child{border-bottom:none;}
+.hub-lb-rank{font-family:'Orbitron',monospace;font-size:9px;color:rgba(255,255,255,.2);width:16px;text-align:center;}
+.hub-lb-em{font-size:14px;width:18px;text-align:center;}
+.hub-lb-name{flex:1;font-size:11px;font-weight:600;color:rgba(255,255,255,.7);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hub-lb-score{font-family:'Orbitron',monospace;font-size:9px;color:var(--c1);}
+.hub-lb-add{background:none;border:1px solid rgba(0,245,196,.2);border-radius:10px;
+  padding:2px 6px;font-size:8px;color:rgba(0,245,196,.5);cursor:none;transition:all .2s;
+  font-family:'Orbitron',monospace;}
+.hub-lb-add:hover{background:rgba(0,245,196,.1);color:var(--c1);border-color:var(--c1);}
+.hub-lb-add.sent{border-color:rgba(255,255,255,.1);color:rgba(255,255,255,.2);}
+
+/* Friends panel */
+.hub-fr-panel{position:absolute;right:24px;top:50%;transform:translateY(-50%);
+  width:220px;background:rgba(13,13,31,.9);backdrop-filter:blur(20px);
+  border:1px solid rgba(255,255,255,.07);border-radius:20px;padding:18px 16px;z-index:5;}
+.hub-fr-title{font-family:'Orbitron',monospace;font-size:8px;letter-spacing:3px;
+  color:rgba(255,255,255,.3);margin-bottom:12px;text-align:center;text-transform:uppercase;}
+.hub-fr-row{display:flex;align-items:center;gap:8px;padding:7px 4px;
+  border-bottom:1px solid rgba(255,255,255,.03);}
+.hub-fr-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.hub-fr-dot.on{background:#22d3a0;box-shadow:0 0 6px #22d3a0;}
+.hub-fr-dot.off{background:rgba(255,255,255,.15);}
+.hub-fr-name{flex:1;font-size:11px;color:rgba(255,255,255,.65);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hub-fr-game{font-size:9px;color:rgba(255,255,255,.25);}
+.hub-fr-empty{text-align:center;padding:20px 0;font-size:11px;color:rgba(255,255,255,.15);line-height:1.6;}
+.hub-fr-req{background:rgba(0,245,196,.06);border:1px solid rgba(0,245,196,.15);
+  border-radius:10px;padding:8px 10px;margin-bottom:8px;}
+.hub-fr-req-name{font-size:11px;color:rgba(255,255,255,.7);margin-bottom:6px;}
+.hub-fr-req-btns{display:flex;gap:6px;}
+.hub-fr-req-btn{flex:1;font-family:'Orbitron',monospace;font-size:7px;padding:4px;
+  border-radius:8px;cursor:none;transition:all .2s;letter-spacing:1px;}
+.hub-fr-req-btn.acc{background:rgba(0,245,196,.15);border:1px solid rgba(0,245,196,.3);color:var(--c1);}
+.hub-fr-req-btn.dec{background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.2);color:rgba(244,63,94,.7);}
+.hub-notif{position:absolute;top:70px;left:50%;transform:translateX(-50%);
+  background:rgba(0,245,196,.12);border:1px solid rgba(0,245,196,.3);border-radius:20px;
+  padding:6px 18px;font-family:'Orbitron',monospace;font-size:9px;letter-spacing:2px;
+  color:var(--c1);opacity:0;transition:opacity .3s;pointer-events:none;z-index:20;white-space:nowrap;}
+.hub-notif.on{opacity:1;}
+
 
 .app-card.tetris::before{background:linear-gradient(90deg,#06b6d4,#3b82f6);}
 .app-card.tetris .app-name{color:#22d3ee;}
@@ -679,11 +733,31 @@ body{background:var(--bg);font-family:'DM Sans',sans-serif;color:#fff;overflow:h
 <!-- ══ HUB ══ -->
 <div id="hub-screen" class="screen">
   <canvas id="hub-bg"></canvas>
+  <div class="hub-notif" id="hub-notif"></div>
   <div class="hub-user" id="hub-user">
     <div class="hub-avatar" id="hub-av">S</div>
     <span class="hub-uname" id="hub-uname">Player</span>
     <button class="hub-out" onclick="doSignOut()">Log Out</button>
   </div>
+
+  <!-- Leaderboard Panel -->
+  <div class="hub-lb-panel">
+    <div class="hub-lb-title">🏆 Leaderboard</div>
+    <div class="hub-lb-tabs">
+      <div class="hub-lb-tab on" id="hlb-tab-arena" onclick="hubLbTab('arena')">Arena</div>
+      <div class="hub-lb-tab" id="hlb-tab-trivia" onclick="hubLbTab('trivia')">Trivia</div>
+      <div class="hub-lb-tab" id="hlb-tab-chess" onclick="hubLbTab('chess')">Chess</div>
+    </div>
+    <div id="hub-lb-list"><div style="text-align:center;color:rgba(255,255,255,.15);padding:12px;font-size:11px">Loading…</div></div>
+  </div>
+
+  <!-- Friends Panel -->
+  <div class="hub-fr-panel">
+    <div class="hub-fr-title">👥 Friends</div>
+    <div id="hub-fr-reqs"></div>
+    <div id="hub-fr-list"><div class="hub-fr-empty">No friends yet.<br>Add from the leaderboard!</div></div>
+  </div>
+
   <div class="hub-wrap">
     <div class="hub-logo">
       <div class="logo logo-lg">PARADOX</div>
@@ -1018,7 +1092,7 @@ body{background:var(--bg);font-family:'DM Sans',sans-serif;color:#fff;overflow:h
 <!-- Stubs: ensure inline onclick attrs work before ES module loads -->
 <script>
 (function(){
-  var fns=['authTab','authKey','doSignIn','doSignUp','doSignOut','enterRoom','genAndFill','toggleBlobStyle',
+  var fns=['authTab','authKey','doSignIn','doSignUp','doSignOut','enterRoom','genAndFill','toggleBlobStyle','hubLbTab','sendFriendReq','acceptFriendReq','declineFriendReq',
     'openBlob','openTrivia','leaveBlob','leaveTrivia',
     'openTetris','leaveTetris','open2048','leave2048','restart2048','openChess','leaveChess','chessPickAI','chessStartPass','chessShowOnline','chessCreateRoom','chessJoinRoom','chessStartAI','chessResign','chessPlayAgain',
     'lobbyTab','createRoom','joinRoom','setTab',
@@ -1132,7 +1206,7 @@ async function doSignUp(){
     const ni=document.getElementById('inp-name');if(ni)ni.value=n;
     document.getElementById('hub-uname').textContent=n;
     document.getElementById('hub-av').textContent=n[0].toUpperCase();
-    showScreen('hub');renderHubBg();
+    showScreen('hub');renderHubBg();initHub();
   }catch(err){showAuthErr(authMsg(err.code));showAuthBusy(false);}
 }
 async function doSignOut(){await signOut(auth);showScreen('login');}
@@ -1152,6 +1226,155 @@ async function doSignOut(){await signOut(auth);showScreen('login');}
 })();
 
 // ══ HUB ══
+// ── Hub Leaderboard ──
+let hubLbGame='arena';
+let hubNotifT;
+
+function hubNotif(txt){
+  const el=document.getElementById('hub-notif');if(!el)return;
+  el.textContent=txt;el.className='hub-notif on';
+  clearTimeout(hubNotifT);hubNotifT=setTimeout(()=>el.className='hub-notif',2500);
+}
+
+function hubLbTab(game){
+  hubLbGame=game;
+  ['arena','trivia','chess'].forEach(g=>{
+    const t=document.getElementById('hlb-tab-'+g);
+    if(t)t.className='hub-lb-tab'+(g===game?' on':'');
+  });
+  renderHubLb();
+}
+
+async function renderHubLb(){
+  const el=document.getElementById('hub-lb-list');
+  if(!el)return;
+  el.innerHTML='<div style="text-align:center;color:rgba(255,255,255,.15);padding:12px;font-size:11px">Loading…</div>';
+
+  let entries=[];
+  if(hubLbGame==='arena'){
+    const data=await fbGet('players')||{};
+    entries=Object.values(data)
+      .filter(p=>p.name&&(p.best||0)>0)
+      .sort((a,b)=>(b.best||0)-(a.best||0))
+      .slice(0,20)
+      .map(p=>({id:p.id,name:p.name,emoji:p.emoji||'😎',score:fmt(p.best||0),color:p.color||'#00f5c4'}));
+  } else if(hubLbGame==='trivia'){
+    const data=await fbGet('trivia/lb')||{};
+    entries=Object.values(data)
+      .filter(p=>p.username&&(p.score||0)>0)
+      .sort((a,b)=>(b.score||0)-(a.score||0))
+      .slice(0,20)
+      .map(p=>({id:p.id||p.username,name:p.username,emoji:'🧠',score:fmt(p.score||0),color:'#a78bfa'}));
+  } else {
+    // Chess — we'll store wins in firebase chess/lb
+    const data=await fbGet('chess/lb')||{};
+    entries=Object.values(data)
+      .filter(p=>p.name&&(p.wins||0)>0)
+      .sort((a,b)=>(b.wins||0)-(a.wins||0))
+      .slice(0,20)
+      .map(p=>({id:p.id||p.name,name:p.name,emoji:'♟️',score:(p.wins||0)+' W',color:'#4ade80'}));
+  }
+
+  if(!entries.length){
+    el.innerHTML='<div style="text-align:center;color:rgba(255,255,255,.15);padding:16px;font-size:11px">No records yet!</div>';
+    return;
+  }
+
+  const medals=['🥇','🥈','🥉'];
+  const friends=JSON.parse(localStorage.getItem('paradox_friends')||'[]');
+  const sent=JSON.parse(localStorage.getItem('paradox_sent_req')||'[]');
+
+  el.innerHTML=entries.map((e,i)=>{
+    const isMe=e.id===myId||e.name===myDisplayName;
+    const isFriend=friends.includes(e.id||e.name);
+    const isSent=sent.includes(e.id||e.name);
+    const btnHtml=isMe||isFriend?'':`<button class="hub-lb-add${isSent?' sent':''}"
+      onclick="sendFriendReq('${esc(e.id||e.name)}','${esc(e.name)}','${e.emoji}')">${isSent?'Sent':'+ Add'}</button>`;
+    return`<div class="hub-lb-row">
+      <div class="hub-lb-rank">${medals[i]||i+1}</div>
+      <div class="hub-lb-em">${e.emoji}</div>
+      <div class="hub-lb-name" style="color:${isMe?'var(--c1)':e.color}">${esc(e.name)}${isMe?' ◀':''}</div>
+      <div class="hub-lb-score">${e.score}</div>
+      ${btnHtml}
+    </div>`;
+  }).join('');
+}
+
+// ── Friend Requests ──
+function sendFriendReq(toId,toName,toEmoji){
+  // Write request to firebase
+  fbSet('friendReqs/'+toId+'/'+myId,{
+    from:myId,fromName:myDisplayName,fromEmoji:myEmoji||'😎',
+    toId,toName,ts:Date.now()
+  });
+  // Mark as sent locally
+  const sent=JSON.parse(localStorage.getItem('paradox_sent_req')||'[]');
+  if(!sent.includes(toId)){sent.push(toId);localStorage.setItem('paradox_sent_req',JSON.stringify(sent));}
+  hubNotif('Friend request sent to '+toName+'!');
+  renderHubLb(); // refresh button states
+}
+
+function acceptFriendReq(fromId,fromName,fromEmoji){
+  // Add to friends list
+  const friends=JSON.parse(localStorage.getItem('paradox_friends')||'[]');
+  if(!friends.includes(fromId)){friends.push(fromId);localStorage.setItem('paradox_friends',JSON.stringify(friends));}
+  // Store friend details
+  const friendData=JSON.parse(localStorage.getItem('paradox_friend_data')||'{}');
+  friendData[fromId]={id:fromId,name:fromName,emoji:fromEmoji,since:Date.now()};
+  localStorage.setItem('paradox_friend_data',JSON.stringify(friendData));
+  // Remove request from firebase
+  set(ref(db,'friendReqs/'+myId+'/'+fromId),null);
+  hubNotif(fromName+' is now your friend! 🎉');
+  renderHubFriends();
+  renderHubReqs();
+}
+
+function declineFriendReq(fromId){
+  set(ref(db,'friendReqs/'+myId+'/'+fromId),null);
+  renderHubReqs();
+}
+
+function renderHubFriends(){
+  const el=document.getElementById('hub-fr-list');if(!el)return;
+  const friendData=JSON.parse(localStorage.getItem('paradox_friend_data')||'{}');
+  const friends=Object.values(friendData);
+  if(!friends.length){
+    el.innerHTML='<div class="hub-fr-empty">No friends yet.<br>Add from the leaderboard!</div>';
+    return;
+  }
+  el.innerHTML=friends.map(f=>`
+    <div class="hub-fr-row">
+      <div class="hub-fr-dot off"></div>
+      <div class="hub-lb-em">${f.emoji||'😎'}</div>
+      <div class="hub-fr-name">${esc(f.name)}</div>
+    </div>`).join('');
+}
+
+function renderHubReqs(){
+  const el=document.getElementById('hub-fr-reqs');if(!el)return;
+  // Listen for incoming requests
+  fbListen('friendReqs/'+myId,snap=>{
+    if(!snap){el.innerHTML='';return;}
+    const reqs=Object.values(snap).filter(r=>r&&r.from);
+    if(!reqs.length){el.innerHTML='';return;}
+    el.innerHTML=reqs.map(r=>`
+      <div class="hub-fr-req">
+        <div class="hub-fr-req-name">${r.fromEmoji||'😎'} <b>${esc(r.fromName)}</b> wants to be friends</div>
+        <div class="hub-fr-req-btns">
+          <button class="hub-fr-req-btn acc" onclick="acceptFriendReq('${r.from}','${esc(r.fromName)}','${r.fromEmoji||'😎'}')">Accept</button>
+          <button class="hub-fr-req-btn dec" onclick="declineFriendReq('${r.from}')">Decline</button>
+        </div>
+      </div>`).join('');
+  });
+}
+
+function initHub(){
+  renderHubLb();
+  renderHubFriends();
+  renderHubReqs();
+  setInterval(renderHubLb,15000);
+}
+
 function renderHubBg(){
   const c=document.getElementById('hub-bg'),x=c.getContext('2d');
   c.width=innerWidth;c.height=innerHeight;
@@ -1417,7 +1640,9 @@ async function startBlobGame(name,room){
     const hs=document.getElementById('h-speed');if(hs)hs.textContent=player.speed.toFixed(1)+'x';
   },300));
 
-  await blobSyncStart(); // await so profile is written before listening
+  await blobSyncStart();
+  blobSeenIds=new Set(); // reset so old chat messages don't replay
+  blobChatStart();
 
   blobSysMsg(esc(myName)+' entered the arena!');
 
@@ -1588,7 +1813,7 @@ function updateBlobLB(){
   if(myIdx<0){entries.push({id:myId,name:myName,emoji:myEmoji,color:myColor,score:player.score,room:myRoom});entries.sort((a,b)=>b.score-a.score);myIdx=entries.findIndex(e=>e.id===myId);}
   document.getElementById('h-rank').textContent='#'+(myIdx+1);
   const medals=['🥇','🥈','🥉'];
-  el.innerHTML=entries.slice(0,12).map((e,i)=>{const me=e.id===myId;
+  el.innerHTML=entries.slice(0,50).map((e,i)=>{const me=e.id===myId;
     return'<div class="lbe'+(me?' mine':'')+'"><div class="lbe-num">'+(medals[i]||i+1)+'</div><div class="lbe-em">'+(e.emoji||'○')+'</div><div class="lbe-info"><div class="lbe-name" style="color:'+(me?'var(--c1)':e.color||'#fff')+'">'+esc(e.name)+(me?' ◀':'')+'</div>'+(blobTab==='global'?'<div class="lbe-tag">'+(e.room||'')+'</div>':'')+'</div><div class="lbe-pts">'+fmt(e.score)+'</div></div>';
   }).join('');
 }
@@ -2457,7 +2682,7 @@ window.__authTab=authTab;window.__authKey=authKey;window.__doSignIn=doSignIn;win
 window.__openBlob=openBlob;window.__openTrivia=openTrivia;window.__leaveBlob=leaveBlob;window.__leaveTrivia=leaveTrivia;
 window.__openTetris=openTetris;window.__leaveTetris=leaveTetris;window.__open2048=open2048;window.__leave2048=leave2048;window.__restart2048=restart2048;
 window.__openChess=openChess;window.__leaveChess=leaveChess;window.__chessPickAI=chessPickAI;window.__chessStartPass=chessStartPass;window.__chessShowOnline=chessShowOnline;window.__chessCreateRoom=chessCreateRoom;window.__chessJoinRoom=chessJoinRoom;window.__chessStartAI=chessStartAI;window.__chessResign=chessResign;window.__chessPlayAgain=chessPlayAgain;
-window.__lobbyTab=lobbyTab;window.__createRoom=createRoom;window.__joinRoom=joinRoom;window.__enterRoom=enterRoom;window.__genAndFill=genAndFill;window.__toggleBlobStyle=toggleBlobStyle;
+window.__lobbyTab=lobbyTab;window.__hubLbTab=hubLbTab;window.__sendFriendReq=sendFriendReq;window.__acceptFriendReq=acceptFriendReq;window.__declineFriendReq=declineFriendReq;window.__createRoom=createRoom;window.__joinRoom=joinRoom;window.__enterRoom=enterRoom;window.__genAndFill=genAndFill;window.__toggleBlobStyle=toggleBlobStyle;
 window.__setTab=setTab;window.__sendChat=sendChat;window.__chatKey=chatKey;window.__restartGame=restartGame;
 window.T=T;
 
