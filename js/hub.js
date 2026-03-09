@@ -14,7 +14,7 @@ export function hubNotif(txt){
 
 export function hubLbTab(game){
   hubLbGame=game;
-  ['arena','trivia','chess'].forEach(g=>{
+  ['arena','trivia','chess','militia'].forEach(g=>{
     const t=document.getElementById('hlb-tab-'+g);
     if(t)t.className='hub-lb-tab'+(g===game?' on':'');
   });
@@ -41,13 +41,20 @@ export async function renderHubLb(){
       .sort((a,b)=>(b.score||0)-(a.score||0))
       .slice(0,20)
       .map(p=>({id:p.id||p.username,name:p.username,emoji:'🧠',score:fmt(p.score||0),color:'#a78bfa'}));
-  } else {
+  } else if(hubLbGame==='chess'){
     const data=await fbGet('chess/lb')||{};
     entries=Object.values(data)
       .filter(p=>p.name&&(p.wins||0)>0)
       .sort((a,b)=>(b.wins||0)-(a.wins||0))
       .slice(0,20)
       .map(p=>({id:p.id||p.name,name:p.name,emoji:'♟️',score:(p.wins||0)+' W',color:'#4ade80'}));
+  } else if(hubLbGame==='militia'){
+    const data=await fbGet('militia/lb')||{};
+    entries=Object.values(data)
+      .filter(p=>p.name&&(p.kills||0)>0)
+      .sort((a,b)=>(b.kills||0)-(a.kills||0))
+      .slice(0,20)
+      .map(p=>({id:p.id||p.name,name:p.name,emoji:'⚔️',score:(p.kills||0)+' K',color:'#f43f5e'}));
   }
 
   if(!entries.length){
