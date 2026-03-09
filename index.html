@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Paradox — Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=DM+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;cursor:none!important;}
+:root{
+  --c1:#00f5c4;--c2:#7c3aed;--c3:#f43f5e;--c4:#f59e0b;
+  --bg:#070711;--panel:#0d0d1f;--border:rgba(255,255,255,0.07);
+  --glass:rgba(13,13,31,0.92);
+}
+body{background:var(--bg);font-family:'DM Sans',sans-serif;color:#fff;overflow:hidden;height:100vh;}
+#cursor{position:fixed;pointer-events:none;z-index:9999;width:14px;height:14px;border:2px solid var(--c1);border-radius:50%;transform:translate(-50%,-50%);transition:left .05s,top .05s;box-shadow:0 0 8px var(--c1);}
+#cursor-dot{position:fixed;pointer-events:none;z-index:9999;width:4px;height:4px;background:var(--c1);border-radius:50%;transform:translate(-50%,-50%);}
+
+/* ── SCREENS ── */
+.screen{position:fixed;inset:0;display:none;}
+.screen.on{display:flex;}
+.screen.block-on{display:block;}
+
+/* ── LOGIN ── */
+#login-screen{flex-direction:column;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse 80% 60% at 50% 50%,#0e0225 0%,var(--bg) 70%);}
+#login-screen canvas{position:absolute;inset:0;pointer-events:none;}
+.login-card{background:rgba(13,13,31,0.92);backdrop-filter:blur(30px);border:1px solid rgba(0,245,196,0.15);
+  border-radius:28px;padding:44px 48px;width:min(460px,92vw);position:relative;
+  box-shadow:0 30px 80px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.06);}
+.login-card::before{content:'';position:absolute;inset:-1px;border-radius:28px;
+  background:linear-gradient(135deg,rgba(0,245,196,0.08),transparent,rgba(124,58,237,0.08));
+  -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;}
+.login-logo{text-align:center;margin-bottom:28px;}
+.logo{font-family:'Orbitron',monospace;font-weight:900;
+  background:linear-gradient(135deg,var(--c1) 0%,#60a5fa 50%,var(--c2) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 30px rgba(0,245,196,0.3));letter-spacing:-1px;}
+.logo-lg{font-size:clamp(38px,5vw,58px);}
+.logo-sub{font-family:'Orbitron',monospace;font-size:10px;letter-spacing:6px;text-transform:uppercase;
+  color:rgba(255,255,255,0.28);margin-top:6px;}
+.login-tabs{display:flex;background:rgba(255,255,255,0.04);border-radius:12px;padding:4px;margin-bottom:24px;}
+.login-tab{flex:1;padding:10px;text-align:center;font-family:'Orbitron',monospace;font-size:9px;
+  letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.3);border-radius:9px;cursor:none;transition:all .2s;}
+.login-tab.on{background:rgba(0,245,196,0.12);color:var(--c1);}
+.auth-err{background:rgba(244,63,94,0.1);border:1px solid rgba(244,63,94,0.3);border-radius:10px;
+  padding:10px 14px;font-size:12px;color:#f87171;margin-bottom:14px;display:none;}
+.auth-err.on{display:block;}
+.field-group{margin-bottom:16px;}
+.field-group label{display:block;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;
+  color:rgba(255,255,255,0.3);margin-bottom:8px;font-family:'Orbitron',monospace;}
+.field-group input{width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);
+  border-radius:12px;padding:13px 16px;color:#fff;font-size:14px;font-family:'DM Sans',sans-serif;
+  outline:none;transition:all .25s;cursor:none;}
+.field-group input:focus{border-color:rgba(0,245,196,0.5);background:rgba(0,245,196,0.04);
+  box-shadow:0 0 0 4px rgba(0,245,196,0.06);}
+.field-group input::placeholder{color:rgba(255,255,255,0.18);}
+.btn{flex:1;padding:14px;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:none;
+  transition:all .25s;letter-spacing:1px;text-transform:uppercase;font-family:'Orbitron',monospace;}
+.btn-primary{background:linear-gradient(135deg,var(--c1),#60a5fa);color:#000;
+  box-shadow:0 4px 20px rgba(0,245,196,0.28);}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,245,196,0.4);}
+.btn-outline{background:transparent;color:var(--c1);border:1px solid rgba(0,245,196,0.35);}
+.btn-outline:hover{background:rgba(0,245,196,0.07);transform:translateY(-2px);}
+.btn-row{display:flex;gap:10px;margin-top:4px;}
+.auth-footer{text-align:center;margin-top:14px;font-size:12px;color:rgba(255,255,255,0.22);}
+.auth-footer a{color:var(--c1);text-decoration:none;cursor:none;font-weight:600;}
+
+/* ── HUB ── */
+#hub-screen{flex-direction:column;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse 80% 60% at 50% 50%,#0a0218 0%,var(--bg) 70%);}
+#hub-screen canvas{position:absolute;inset:0;pointer-events:none;}
+.hub-wrap{position:relative;z-index:2;text-align:center;}
+.hub-logo{margin-bottom:40px;}
+.hub-apps{display:flex;gap:24px;justify-content:center;flex-wrap:wrap;}
+.app-card{width:220px;background:rgba(13,13,31,0.88);backdrop-filter:blur(20px);
+  border:1px solid rgba(255,255,255,0.08);border-radius:24px;padding:36px 24px;
+  cursor:none;transition:all .3s;position:relative;overflow:hidden;}
+.app-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:24px 24px 0 0;}
+.app-card.blob::before{background:linear-gradient(90deg,var(--c1),#60a5fa);}
+.app-card.trivia::before{background:linear-gradient(90deg,#7c3aed,#ec4899);}
+.app-card:hover{transform:translateY(-8px) scale(1.02);border-color:rgba(255,255,255,0.18);
+  box-shadow:0 20px 60px rgba(0,0,0,0.5);}
+.app-icon{width:56px;height:56px;margin:0 auto 18px;display:block;}
+.app-icon svg{width:100%;height:100%;display:block;}
+.app-name{font-family:'Orbitron',monospace;font-size:15px;font-weight:900;letter-spacing:1px;margin-bottom:6px;}
+.app-card.blob .app-name{color:var(--c1);}
+.app-card.trivia .app-name{color:#a78bfa;}
+.app-sub{font-size:12px;color:rgba(255,255,255,0.35);}
+.hub-user{position:absolute;top:20px;right:20px;z-index:10;
+  background:rgba(13,13,31,0.85);border:1px solid var(--border);border-radius:50px;
+  padding:6px 14px 6px 8px;display:flex;align-items:center;gap:8px;cursor:none;}
+.hub-avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--c2),var(--c3));
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;}
+.hub-uname{font-size:12px;font-weight:600;color:rgba(255,255,255,0.8);}
+.hub-out{font-family:'Orbitron',monospace;font-size:8px;color:rgba(244,63,94,.7);padding:5px 12px;
+  border:1px solid rgba(244,63,94,.3);border-radius:20px;cursor:none;transition:all .2s;background:transparent;}
+.hub-out:hover{background:rgba(244,63,94,.15);color:#f43f5e;border-color:rgba(244,63,94,.6);}
+.hub-footer{position:absolute;bottom:24px;font-family:'Orbitron',monospace;font-size:9px;
+  letter-spacing:3px;color:rgba(255,255,255,0.15);}
+.hub-footer span{color:rgba(0,245,196,0.5);}
+
+/* Hub leaderboard sidebar */
+.hub-lb-panel{position:absolute;left:24px;top:50%;transform:translateY(-50%);
+  width:220px;background:rgba(13,13,31,.9);backdrop-filter:blur(20px);
+  border:1px solid rgba(255,255,255,.07);border-radius:20px;padding:18px 16px;z-index:5;}
+.hub-lb-title{font-family:'Orbitron',monospace;font-size:8px;letter-spacing:3px;
+  color:rgba(255,255,255,.3);margin-bottom:12px;text-align:center;text-transform:uppercase;}
+.hub-lb-tabs{display:flex;background:rgba(255,255,255,.04);border-radius:8px;padding:3px;margin-bottom:12px;gap:2px;}
+.hub-lb-tab{flex:1;font-family:'Orbitron',monospace;font-size:7px;letter-spacing:1px;
+  padding:5px 2px;border-radius:6px;text-align:center;cursor:none;transition:all .2s;
+  color:rgba(255,255,255,.3);text-transform:uppercase;}
+.hub-lb-tab.on{background:rgba(0,245,196,.12);color:var(--c1);}
+.hub-lb-row{display:flex;align-items:center;gap:8px;padding:6px 4px;
+  border-bottom:1px solid rgba(255,255,255,.03);cursor:none;}
+.hub-lb-row:last-child{border-bottom:none;}
+.hub-lb-rank{font-family:'Orbitron',monospace;font-size:9px;color:rgba(255,255,255,.2);width:16px;text-align:center;}
+.hub-lb-em{font-size:14px;width:18px;text-align:center;}
+.hub-lb-name{flex:1;font-size:11px;font-weight:600;color:rgba(255,255,255,.7);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hub-lb-score{font-family:'Orbitron',monospace;font-size:9px;color:var(--c1);}
+.hub-lb-add{background:none;border:1px solid rgba(0,245,196,.2);border-radius:10px;
+  padding:2px 6px;font-size:8px;color:rgba(0,245,196,.5);cursor:none;transition:all .2s;
+  font-family:'Orbitron',monospace;}
+.hub-lb-add:hover{background:rgba(0,245,196,.1);color:var(--c1);border-color:var(--c1);}
+.hub-lb-add.sent{border-color:rgba(255,255,255,.1);color:rgba(255,255,255,.2);}
+
+/* Friends panel */
+.hub-fr-panel{position:absolute;right:24px;top:50%;transform:translateY(-50%);
+  width:220px;background:rgba(13,13,31,.9);backdrop-filter:blur(20px);
+  border:1px solid rgba(255,255,255,.07);border-radius:20px;padding:18px 16px;z-index:5;}
+.hub-fr-title{font-family:'Orbitron',monospace;font-size:8px;letter-spacing:3px;
+  color:rgba(255,255,255,.3);margin-bottom:12px;text-align:center;text-transform:uppercase;}
+.hub-fr-row{display:flex;align-items:center;gap:8px;padding:7px 4px;
+  border-bottom:1px solid rgba(255,255,255,.03);}
+.hub-fr-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.hub-fr-dot.on{background:#22d3a0;box-shadow:0 0 6px #22d3a0;}
+.hub-fr-dot.off{background:rgba(255,255,255,.15);}
+.hub-fr-name{flex:1;font-size:11px;color:rgba(255,255,255,.65);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hub-fr-game{font-size:9px;color:rgba(255,255,255,.25);}
+.hub-fr-empty{text-align:center;padding:20px 0;font-size:11px;color:rgba(255,255,255,.15);line-height:1.6;}
+.hub-fr-req{background:rgba(0,245,196,.06);border:1px solid rgba(0,245,196,.15);
+  border-radius:10px;padding:8px 10px;margin-bottom:8px;}
+.hub-fr-req-name{font-size:11px;color:rgba(255,255,255,.7);margin-bottom:6px;}
+.hub-fr-req-btns{display:flex;gap:6px;}
+.hub-fr-req-btn{flex:1;font-family:'Orbitron',monospace;font-size:7px;padding:4px;
+  border-radius:8px;cursor:none;transition:all .2s;letter-spacing:1px;}
+.hub-fr-req-btn.acc{background:rgba(0,245,196,.15);border:1px solid rgba(0,245,196,.3);color:var(--c1);}
+.hub-fr-req-btn.dec{background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.2);color:rgba(244,63,94,.7);}
+.hub-notif{position:absolute;top:70px;left:50%;transform:translateX(-50%);
+  background:rgba(0,245,196,.12);border:1px solid rgba(0,245,196,.3);border-radius:20px;
+  padding:6px 18px;font-family:'Orbitron',monospace;font-size:9px;letter-spacing:2px;
+  color:var(--c1);opacity:0;transition:opacity .3s;pointer-events:none;z-index:20;white-space:nowrap;}
+.hub-notif.on{opacity:1;}
+
+
+.app-card.tetris::before{background:linear-gradient(90deg,#06b6d4,#3b82f6);}
+.app-card.tetris .app-name{color:#22d3ee;}
+.app-card.g2048::before{background:linear-gradient(90deg,#f59e0b,#ef4444);}
+.app-card.g2048 .app-name{color:#fbbf24;}
+.app-card.chess::before{background:linear-gradient(90deg,#4ade80,#22d3ee);}
+.app-card.chess .app-name{color:#4ade80;}
+
+/* ── HUB grid: 2x2 on wide, wrap on narrow ── */
+.hub-apps{display:grid;grid-template-columns:repeat(3,200px);gap:20px;justify-content:center;}
+
+@media(max-width:680px){.hub-apps{grid-template-columns:1fr 1fr;}}
+
+/* ── TETRIS screen ── */
+#tetris-screen{
+  background:radial-gradient(ellipse 80% 60% at 50% 50%,#0a1628 0%,var(--bg) 70%);
+  align-items:center;justify-content:center;flex-direction:column;}
+#tetris-screen .g-back{position:absolute;top:16px;left:16px;background:rgba(13,13,31,.85);
+  border:1px solid rgba(6,182,212,.25);border-radius:50px;padding:7px 16px;
+  font-family:'Orbitron',monospace;font-size:9px;letter-spacing:2px;
+  color:rgba(255,255,255,.4);transition:all .2s;}
+#tetris-screen .g-back:hover{color:#22d3ee;border-color:rgba(6,182,212,.6);}
+#tetris-wrap{display:flex;gap:24px;align-items:flex-start;padding-top:60px;}
+#tetris-side{width:150px;}
+.tet-panel{background:rgba(13,13,31,.88);border:1px solid rgba(255,255,255,.07);
+  border-radius:16px;padding:16px;margin-bottom:12px;}
+.tet-panel .ts-label{font-family:'Orbitron',monospace;font-size:8px;letter-spacing:3px;
+  color:rgba(255,255,255,.25);text-transform:uppercase;margin-bottom:4px;}
+.tet-panel .ts-val{font-family:'Orbitron',monospace;font-size:26px;font-weight:900;
+  background:linear-gradient(135deg,#22d3ee,#3b82f6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+#tet-next{border-radius:10px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.07);display:block;}
+#tetris-canvas{border-radius:12px;border:1px solid rgba(6,182,212,.15);
+  box-shadow:0 0 40px rgba(6,182,212,.08),inset 0 0 0 1px rgba(255,255,255,.04);
+  background:#060612;}
+
+/* ── 2048 screen ── */
+#g2048-screen{
+  background:radial-gradient(ellipse 80% 60% at 50% 50%,#1a0f00 0%,var(--bg) 70%);
+  align-items:center;justify-content:center;flex-direction:column;overflow-y:auto;}
+#g2048-screen .g-back{position:absolute;top:16px;left:16px;background:rgba(13,13,31,.85);
+  border:1px solid rgba(245,158,11,.25);border-radius:50px;padding:7px 16px;
+  font-family:'Orbitron',monospace;font-size:9px;letter-spacing:2px;
+  color:rgba(255,255,255,.4);transition:all .2s;}
+#g2048-screen .g-back:hover{color:#fbbf24;border-color:rgba(245,158,11,.6);}
+.g2048-wrap{width:min(460px,96vw);padding-top:60px;padding-bottom:20px;}
+.g2048-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.g2048-title{font-family:'Orbitron',monospace;font-size:52px;font-weight:900;line-height:1;
+  background:linear-gradient(135deg,#fbbf24,#f97316);-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 20px rgba(251,191,36,.3));}
+.g2048-scores{display:flex;gap:10px;}
+.g2048-sc{background:rgba(13,13,31,.88);border:1px solid rgba(245,158,11,.2);border-radius:12px;
+  padding:10px 18px;text-align:center;min-width:80px;backdrop-filter:blur(10px);}
+.g2048-sc .lbl{font-size:8px;font-weight:700;color:rgba(255,255,255,.3);letter-spacing:2px;font-family:'Orbitron',monospace;}
+.g2048-sc .val{font-size:22px;font-weight:900;color:#fbbf24;font-family:'Orbitron',monospace;}
+.g2048-sub{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.g2048-desc{font-size:12px;color:rgba(255,255,255,.35);}
+.g2048-desc strong{color:#fbbf24;}
+.g2048-newbtn{background:linear-gradient(135deg,#f59e0b,#ef4444);border:none;border-radius:10px;
+  padding:10px 20px;color:#fff;font-weight:700;font-size:11px;font-family:'Orbitron',monospace;
+  letter-spacing:1px;transition:all .2s;box-shadow:0 4px 15px rgba(245,158,11,.3);}
+.g2048-newbtn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(245,158,11,.4);}
+.g2048-board{background:rgba(13,13,31,.9);border:1px solid rgba(245,158,11,.15);
+  border-radius:16px;padding:12px;position:relative;
+  box-shadow:0 0 40px rgba(245,158,11,.06),inset 0 0 0 1px rgba(255,255,255,.04);}
+.g2048-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.g2048-cell{background:rgba(255,255,255,.04);border-radius:8px;aspect-ratio:1;border:1px solid rgba(255,255,255,.05);}
+#g2048-tiles{position:absolute;inset:12px;pointer-events:none;}
+.g2048-tile{position:absolute;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  font-family:'Orbitron',monospace;font-weight:900;transition:left .12s,top .12s;
+  font-size:clamp(12px,2.2vw,26px);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.g2048-over,.g2048-win{position:absolute;inset:0;border-radius:16px;display:none;
+  align-items:center;justify-content:center;flex-direction:column;gap:14px;
+  font-family:'Orbitron',monospace;font-weight:900;font-size:24px;backdrop-filter:blur(8px);}
+.g2048-over.on,.g2048-win.on{display:flex;}
+.g2048-over{background:rgba(7,7,17,.8);color:rgba(255,255,255,.6);}
+.g2048-win{background:rgba(245,158,11,.15);color:#fbbf24;border:1px solid rgba(245,158,11,.3);}
+.g2048-over .g2048-retry,.g2048-win .g2048-retry{background:linear-gradient(135deg,#f59e0b,#ef4444);
+  border:none;border-radius:10px;padding:10px 24px;color:#fff;font-size:12px;
+  font-family:'Orbitron',monospace;font-weight:700;letter-spacing:1px;}
+
+/* ── CHESS screen ── */
+#chess-screen{
+  background:radial-gradient(ellipse 80% 60% at 50% 50%,#0f1a0f 0%,var(--bg) 70%);
+  align-items:center;justify-content:center;flex-direction:column;overflow-y:auto;}
+#chess-screen .g-back{position:absolute;top:16px;left:16px;background:rgba(13,13,31,.85);
+  border:1px solid rgba(74,222,128,.25);border-radius:50px;padding:7px 16px;
+  font-family:'Orbitron',monospace;font-size:9px;letter-spacing:2px;
+  color:rgba(255,255,255,.4);transition:all .2s;}
+#chess-screen .g-back:hover{color:#4ade80;border-color:rgba(74,222,128,.6);}
+
+/* Chess lobby */
+#chess-lobby{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  width:100%;min-height:100vh;padding:70px 16px 20px;}
+.chess-lobby-title{font-family:'Orbitron',monospace;font-size:clamp(32px,5vw,52px);font-weight:900;
+  background:linear-gradient(135deg,#4ade80,#22d3ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin-bottom:8px;text-align:center;}
+.chess-lobby-sub{font-size:12px;letter-spacing:3px;color:rgba(255,255,255,.25);
+  font-family:'Orbitron',monospace;text-transform:uppercase;margin-bottom:36px;}
+.chess-mode-cards{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-bottom:28px;}
+.chess-mode-card{width:200px;background:rgba(13,13,31,.88);border:1px solid rgba(255,255,255,.08);
+  border-radius:20px;padding:28px 20px;text-align:center;cursor:none;transition:all .3s;position:relative;overflow:hidden;}
+.chess-mode-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:20px 20px 0 0;}
+.chess-mode-card.vsai::before{background:linear-gradient(90deg,#4ade80,#22d3ee);}
+.chess-mode-card.vsplayer::before{background:linear-gradient(90deg,#a78bfa,#f472b6);}
+.chess-mode-card:hover{transform:translateY(-6px);border-color:rgba(255,255,255,.15);box-shadow:0 20px 50px rgba(0,0,0,.5);}
+.chess-mode-icon{margin:0 auto 16px;}
+.chess-mode-name{font-family:'Orbitron',monospace;font-size:13px;font-weight:900;margin-bottom:6px;}
+.chess-mode-card.vsai .chess-mode-name{color:#4ade80;}
+.chess-mode-card.vsplayer .chess-mode-name{color:#a78bfa;}
+.chess-mode-desc{font-size:11px;color:rgba(255,255,255,.3);}
+
+/* Chess diff selector */
+.chess-diff-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+.chess-diff-btn{padding:8px 20px;border-radius:20px;font-family:'Orbitron',monospace;font-size:9px;
+  letter-spacing:2px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);
+  color:rgba(255,255,255,.4);transition:all .2s;text-transform:uppercase;}
+.chess-diff-btn:hover,.chess-diff-btn.sel{border-color:#4ade80;background:rgba(74,222,128,.1);color:#4ade80;}
+
+/* Chess room */
+.chess-room-card{background:rgba(13,13,31,.88);border:1px solid rgba(167,139,250,.2);border-radius:20px;
+  padding:28px;width:min(360px,92vw);text-align:center;}
+.chess-room-code-disp{border:2px solid rgba(167,139,250,.4);background:rgba(167,139,250,.08);
+  border-radius:16px;padding:14px 32px;font-family:'Orbitron',monospace;font-size:32px;
+  font-weight:900;letter-spacing:.2em;color:#c4b5fd;margin:14px 0;}
+
+/* Chess board */
+#chess-game{display:none;flex-direction:column;align-items:center;justify-content:center;
+  width:100%;min-height:100vh;padding:70px 16px 20px;}
+.chess-top-bar{display:flex;align-items:center;justify-content:space-between;
+  width:min(520px,96vw);margin-bottom:12px;}
+.chess-player-tag{display:flex;align-items:center;gap:10px;}
+.chess-player-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.chess-player-label{font-family:'Orbitron',monospace;font-size:10px;letter-spacing:2px;
+  color:rgba(255,255,255,.4);text-transform:uppercase;}
+.chess-player-name{font-size:13px;font-weight:700;}
+.chess-status{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:2px;
+  color:rgba(255,255,255,.35);text-transform:uppercase;text-align:center;}
+.chess-board-wrap{position:relative;}
+#chess-board{display:grid;grid-template-columns:repeat(8,1fr);
+  width:min(480px,90vw);height:min(480px,90vw);border-radius:8px;
+  overflow:hidden;border:2px solid rgba(255,255,255,.08);
+  box-shadow:0 0 60px rgba(74,222,128,.06);}
+.chess-sq{display:flex;align-items:center;justify-content:center;position:relative;transition:background .15s;}
+.chess-sq.light{background:#1e2d1e;}
+.chess-sq.dark{background:#0d160d;}
+.chess-sq.selected{background:rgba(74,222,128,.35)!important;}
+.chess-sq.legal{background:rgba(74,222,128,.15)!important;}
+.chess-sq.legal::after{content:'';position:absolute;width:30%;height:30%;border-radius:50%;background:rgba(74,222,128,.5);}
+.chess-sq.last-move{background:rgba(74,222,128,.12)!important;}
+.chess-sq.in-check{background:rgba(244,63,94,.25)!important;}
+.chess-sq:hover{background:rgba(255,255,255,.06)!important;}
+.chess-piece{font-size:clamp(24px,5vw,44px);line-height:1;cursor:none;user-select:none;
+  transition:transform .15s;filter:drop-shadow(0 2px 4px rgba(0,0,0,.8));}
+.chess-piece.white{filter:drop-shadow(0 0 6px rgba(255,255,255,.4)) drop-shadow(0 2px 4px rgba(0,0,0,.9));}
+.chess-piece.black{filter:drop-shadow(0 0 6px rgba(100,200,100,.3)) drop-shadow(0 2px 4px rgba(0,0,0,.9));}
+.chess-coords{position:absolute;font-family:'Orbitron',monospace;font-size:8px;
+  color:rgba(255,255,255,.15);pointer-events:none;font-weight:700;}
+.chess-captured{display:flex;gap:4px;flex-wrap:wrap;height:22px;align-items:center;}
+.chess-cap-piece{font-size:14px;opacity:.6;}
+.chess-bottom-bar{display:flex;align-items:center;justify-content:space-between;
+  width:min(520px,96vw);margin-top:12px;}
+.chess-resign-btn{background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.25);
+  border-radius:20px;padding:6px 16px;font-family:'Orbitron',monospace;font-size:8px;
+  letter-spacing:2px;color:rgba(244,63,94,.7);transition:all .2s;}
+.chess-resign-btn:hover{background:rgba(244,63,94,.2);color:#f43f5e;}
+.chess-move-list{max-height:60px;overflow-y:auto;font-family:'Orbitron',monospace;font-size:9px;
+  color:rgba(255,255,255,.25);letter-spacing:1px;}
+
+/* Chess overlay */
+.chess-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(12px);
+  display:none;align-items:center;justify-content:center;z-index:100;flex-direction:column;gap:16px;}
+.chess-overlay.on{display:flex;}
+.chess-overlay-title{font-family:'Orbitron',monospace;font-size:28px;font-weight:900;
+  background:linear-gradient(135deg,#4ade80,#22d3ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.chess-overlay-sub{font-size:14px;color:rgba(255,255,255,.4);font-family:'Orbitron',monospace;letter-spacing:2px;}
+.chess-overlay-btns{display:flex;gap:12px;margin-top:8px;}
+.chess-overlay-btn{padding:12px 28px;border-radius:12px;font-family:'Orbitron',monospace;
+  font-size:11px;font-weight:700;letter-spacing:2px;border:none;transition:all .2s;}
+.chess-overlay-btn.primary{background:linear-gradient(135deg,#4ade80,#22d3ee);color:#000;}
+.chess-overlay-btn.secondary{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#fff;}
+
+/* ─── CHESS ─── */
+.app-card.chess::before{background:linear-gradient(90deg,#4ade80,#22d3ee);}
+.app-card.chess .app-name{color:#4ade80;}
+#chess-screen{background:radial-gradient(ellipse 80% 60% at 50% 50%,#071a0f 0%,var(--bg) 70%);
+  align-items:center;justify-content:center;flex-direction:column;overflow-y:auto;}
+#chess-screen .g-back{position:absolute;top:16px;left:16px;background:rgba(13,13,31,.85);
+  border:1px solid rgba(74,222,128,.25);border-radius:50px;padding:7px 16px;
+  font-family:'Orbitron',monospace;font-size:9px;letter-spacing:2px;
+  color:rgba(255,255,255,.4);transition:all .2s;cursor:none;}
+#chess-screen .g-back:hover{color:#4ade80;border-color:rgba(74,222,128,.6);}
+#chess-lobby{display:none;flex-direction:column;align-items:center;justify-content:center;
+  width:100%;min-height:100vh;padding:70px 16px 20px;gap:0;}
+#chess-lobby.on{display:flex;}
+.chess-logo{font-family:'Orbitron',monospace;font-size:clamp(28px,5vw,48px);font-weight:900;
+  background:linear-gradient(135deg,#4ade80,#22d3ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin-bottom:6px;}
+.chess-logo-sub{font-family:'Orbitron',monospace;font-size:10px;letter-spacing:4px;
+  color:rgba(255,255,255,.2);margin-bottom:32px;}
+.chess-modes{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-bottom:24px;}
+.chess-mc{width:190px;background:rgba(13,13,31,.88);border:1px solid rgba(255,255,255,.08);
+  border-radius:20px;padding:28px 18px;text-align:center;cursor:none;transition:all .3s;position:relative;overflow:hidden;}
+.chess-mc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:20px 20px 0 0;}
+.chess-mc.ai::before{background:linear-gradient(90deg,#4ade80,#22d3ee);}
+.chess-mc.pass::before{background:linear-gradient(90deg,#f59e0b,#f97316);}
+.chess-mc.online::before{background:linear-gradient(90deg,#a78bfa,#f472b6);}
+.chess-mc:hover{transform:translateY(-6px);border-color:rgba(255,255,255,.15);box-shadow:0 20px 50px rgba(0,0,0,.5);}
+.chess-mc-icon{width:44px;height:44px;margin:0 auto 14px;}
+.chess-mc-icon svg{width:100%;height:100%;}
+.chess-mc-title{font-family:'Orbitron',monospace;font-size:12px;font-weight:900;margin-bottom:5px;}
+.chess-mc.ai .chess-mc-title{color:#4ade80;}
+.chess-mc.pass .chess-mc-title{color:#fbbf24;}
+.chess-mc.online .chess-mc-title{color:#c4b5fd;}
+.chess-mc-desc{font-size:10px;color:rgba(255,255,255,.28);}
+/* diff picker */
+#chess-diff-picker{display:none;flex-direction:column;align-items:center;gap:14px;
+  background:rgba(13,13,31,.92);border:1px solid rgba(74,222,128,.15);border-radius:20px;
+  padding:28px 32px;width:min(360px,92vw);}
+#chess-diff-picker.on{display:flex;}
+.chess-diff-title{font-family:'Orbitron',monospace;font-size:13px;letter-spacing:2px;color:#4ade80;}
+.chess-diff-btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+.chess-diff-btn{padding:9px 22px;border-radius:20px;font-family:'Orbitron',monospace;font-size:9px;
+  letter-spacing:2px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);
+  color:rgba(255,255,255,.4);transition:all .2s;cursor:none;}
+.chess-diff-btn:hover{border-color:#4ade80;background:rgba(74,222,128,.1);color:#4ade80;}
+.chess-back-link{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:2px;
+  color:rgba(255,255,255,.2);margin-top:6px;transition:color .2s;cursor:none;}
+.chess-back-link:hover{color:rgba(255,255,255,.5);}
+/* online panel */
+#chess-online-panel{display:none;flex-direction:column;align-items:center;gap:14px;
+  background:rgba(13,13,31,.92);border:1px solid rgba(167,139,250,.15);border-radius:20px;
+  padding:28px 32px;width:min(380px,92vw);}
+#chess-online-panel.on{display:flex;}
+.chess-room-code{border:2px solid rgba(167,139,250,.4);background:rgba(167,139,250,.06);
+  border-radius:14px;padding:12px 28px;font-family:'Orbitron',monospace;font-size:30px;font-weight:900;
+  letter-spacing:.2em;color:#c4b5fd;margin:6px 0;}
+.chess-onl-label{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:3px;color:rgba(255,255,255,.25);}
+.chess-onl-input{background:rgba(255,255,255,.05);border:1px solid rgba(167,139,250,.2);border-radius:10px;
+  padding:10px 16px;color:#fff;font-size:16px;font-family:'Orbitron',monospace;letter-spacing:.15em;
+  text-align:center;width:180px;outline:none;}
+.chess-onl-input:focus{border-color:rgba(167,139,250,.5);}
+.chess-onl-row{display:flex;gap:10px;align-items:center;}
+/* game board */
+#chess-game{display:none;width:100%;min-height:100vh;padding:60px 12px 12px;
+  align-items:center;justify-content:center;flex-direction:column;gap:10px;}
+#chess-game.on{display:flex;}
+.cg-header{display:flex;align-items:center;justify-content:space-between;width:min(480px,96vw);}
+.cg-player{display:flex;align-items:center;gap:8px;}
+.cg-dot{width:9px;height:9px;border-radius:50%;}
+.cg-pname{font-family:'Orbitron',monospace;font-size:10px;font-weight:700;letter-spacing:1px;}
+.cg-turn{font-family:'Orbitron',monospace;font-size:9px;font-weight:700;letter-spacing:2px;
+  color:rgba(255,255,255,.5);text-align:center;text-transform:uppercase;
+  padding:4px 12px;border-radius:20px;background:rgba(255,255,255,.05);transition:all .3s;}
+.cg-captured{display:flex;gap:3px;align-items:center;min-height:22px;font-size:13px;opacity:.55;}
+.cg-timer{font-family:'Orbitron',monospace;font-size:18px;font-weight:900;min-width:48px;text-align:right;}
+#chess-board-wrap{position:relative;}
+#chess-board{display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);
+  width:min(480px,88vw);height:min(480px,88vw);border-radius:6px;
+  border:1px solid rgba(74,222,128,.12);box-shadow:0 0 60px rgba(74,222,128,.04);}
+.cs{display:flex;align-items:center;justify-content:center;position:relative;transition:background .12s;cursor:none;overflow:hidden;contain:layout style;}
+.cs.light{background:#1a2e1a;}
+.cs.dark{background:#0d160d;}
+.cs.sel{background:rgba(74,222,128,.4)!important;}
+.cs.legal::after{content:'';position:absolute;width:28%;height:28%;border-radius:50%;
+  background:rgba(74,222,128,.55);pointer-events:none;}
+.cs.legal.occ::after{content:'';position:absolute;inset:0;border-radius:0;
+  border:3px solid rgba(74,222,128,.6);background:transparent;width:auto;height:auto;}
+.cs.lastmove{background:rgba(74,222,128,.14)!important;}
+.cs.check{background:rgba(244,63,94,.3)!important;}
+.cs:hover{background:rgba(255,255,255,.07)!important;}
+.cp{font-size:clamp(20px,5vw,40px);line-height:1;user-select:none;pointer-events:none;
+  text-shadow:0 2px 8px rgba(0,0,0,.9);position:relative;z-index:2;}
+.cp.w{filter:drop-shadow(0 0 5px rgba(255,255,255,.5));}
+.cp.b{filter:drop-shadow(0 0 5px rgba(74,222,128,.4));}
+.cg-footer{display:flex;align-items:center;justify-content:space-between;width:min(480px,96vw);}
+.cg-moves{font-family:'Orbitron',monospace;font-size:8px;color:rgba(255,255,255,.2);
+  max-height:38px;overflow:hidden;letter-spacing:1px;}
+.cg-resign{background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.35);
+  border-radius:20px;padding:7px 18px;font-family:'Orbitron',monospace;font-size:9px;font-weight:700;
+  letter-spacing:2px;color:rgba(244,63,94,.85);transition:all .2s;cursor:none;}
+.cg-resign:hover{background:rgba(244,63,94,.22);color:#f43f5e;border-color:#f43f5e;}
+/* result overlay */
+#chess-result{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(14px);
+  display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;z-index:200;}
+#chess-result.on{display:flex;}
+.cr-title{font-family:'Orbitron',monospace;font-size:clamp(20px,4vw,32px);font-weight:900;
+  background:linear-gradient(135deg,#4ade80,#22d3ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.cr-sub{font-family:'Orbitron',monospace;font-size:11px;letter-spacing:3px;color:rgba(255,255,255,.3);}
+.cr-btns{display:flex;gap:12px;margin-top:8px;}
+.cr-btn{padding:12px 26px;border-radius:12px;font-family:'Orbitron',monospace;font-size:10px;
+  font-weight:700;letter-spacing:2px;border:none;transition:all .2s;cursor:none;}
+.cr-btn.primary{background:linear-gradient(135deg,#4ade80,#22d3ee);color:#000;}
+.cr-btn.secondary{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.6);}
+.cr-btn:hover{transform:translateY(-2px);}
+
+/* ── BLOB: panels, hud, etc ── */
+.sp{position:absolute;top:0;height:100vh;width:248px;background:var(--glass);backdrop-filter:blur(20px);
+  border:1px solid var(--border);display:flex;flex-direction:column;pointer-events:auto;z-index:10;}
+#sp-left{left:0;border-left:none;border-top:none;border-bottom:none;}
+#sp-right{right:0;border-right:none;border-top:none;border-bottom:none;}
+.sp-hdr{padding:18px 16px 0;flex-shrink:0;}
+.sp-title{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:4px;text-transform:uppercase;
+  color:var(--c1);padding-bottom:14px;border-bottom:1px solid var(--border);}
+.sp-tabs{display:flex;}
+.sp-tab{flex:1;padding:11px 4px;font-size:9px;letter-spacing:2px;text-transform:uppercase;
+  font-family:'Orbitron',monospace;color:rgba(255,255,255,0.3);border-bottom:2px solid transparent;
+  text-align:center;cursor:none;transition:all .2s;user-select:none;}
+.sp-tab.on{color:var(--c1);border-bottom-color:var(--c1);}
+#lb-list{flex:1;overflow-y:auto;padding:8px 10px;}
+#lb-list::-webkit-scrollbar{width:2px;}
+#lb-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);}
+.lbe{display:flex;align-items:center;gap:8px;padding:9px 8px;border-radius:10px;margin-bottom:2px;transition:background .15s;}
+.lbe:hover{background:rgba(255,255,255,0.03);}
+.lbe.mine{background:rgba(0,245,196,0.06);border:1px solid rgba(0,245,196,0.12);}
+.lbe-num{font-family:'Orbitron',monospace;font-size:10px;color:rgba(255,255,255,0.2);width:18px;text-align:center;}
+.lbe-em{font-size:17px;width:22px;text-align:center;}
+.lbe-info{flex:1;min-width:0;}
+.lbe-name{font-size:12px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.lbe-tag{font-size:9px;color:rgba(255,255,255,0.25);}
+.lbe-pts{font-family:'Orbitron',monospace;font-size:11px;color:var(--c1);font-weight:700;}
+.friends-wrap{flex:1;overflow-y:auto;padding:10px;}
+.friend-sec-title{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,0.2);font-family:'Orbitron',monospace;padding:8px 4px 6px;}
+.fri{display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;cursor:none;transition:background .15s;}
+.fri:hover{background:rgba(255,255,255,0.04);}
+.fri-dot{width:7px;height:7px;border-radius:50%;}
+.fri-dot.on{background:#22d3a0;box-shadow:0 0 8px #22d3a0;}
+.fri-dot.off{background:rgba(255,255,255,0.15);}
+.fri-name{flex:1;font-size:12px;}
+.fri-sc{font-family:'Orbitron',monospace;font-size:10px;color:rgba(255,255,255,0.3);}
+#chat-msgs{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:6px;}
+#chat-msgs::-webkit-scrollbar{width:2px;}
+#chat-msgs::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);}
+.cmsg{font-size:12px;line-height:1.5;}
+.cmsg .cn{font-weight:700;font-size:10px;font-family:'Orbitron',monospace;}
+.cmsg .ct{color:rgba(255,255,255,0.65);}
+.cmsg.sys .ct{color:rgba(0,245,196,0.55);font-style:italic;font-size:11px;}
+.chat-inp-row{display:flex;gap:8px;padding:10px;border-top:1px solid var(--border);flex-shrink:0;}
+.chat-inp-row input{flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);
+  border-radius:10px;padding:9px 12px;color:#fff;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;cursor:none;}
+.chat-inp-row input:focus{border-color:rgba(0,245,196,0.35);}
+.chat-send{background:rgba(0,245,196,0.1);border:1px solid rgba(0,245,196,0.25);border-radius:10px;
+  padding:9px 14px;color:var(--c1);cursor:none;font-size:11px;font-family:'Orbitron',monospace;font-weight:700;transition:all .2s;letter-spacing:1px;}
+.chat-send:hover{background:rgba(0,245,196,0.2);}
+#hud{position:absolute;top:16px;left:50%;transform:translateX(-50%);background:var(--glass);
+  backdrop-filter:blur(15px);border:1px solid var(--border);border-radius:50px;
+  padding:8px 28px;display:flex;gap:32px;align-items:center;pointer-events:none;z-index:10;}
+.hud-item{text-align:center;}
+.hud-label{font-family:'Orbitron',monospace;font-size:7px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,0.25);}
+.hud-val{font-family:'Orbitron',monospace;font-size:16px;font-weight:700;color:#fff;line-height:1.2;}
+.hud-val.hl{color:var(--c1);}
+#room-pill{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);background:var(--glass);
+  border:1px solid var(--border);border-radius:50px;padding:5px 18px;font-family:'Orbitron',monospace;
+  font-size:9px;letter-spacing:2px;color:rgba(255,255,255,0.35);pointer-events:none;z-index:10;white-space:nowrap;}
+#room-pill span{color:var(--c1);}
+#skills{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);display:flex;gap:10px;pointer-events:none;z-index:10;}
+.sk{width:52px;height:52px;background:var(--glass);border:2px solid rgba(255,255,255,0.12);
+  border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:18px;gap:2px;transition:all .3s;}
+.sk .sk-key{font-family:'Orbitron',monospace;font-size:7px;color:rgba(255,255,255,0.25);}
+.sk.rdy{border-color:rgba(0,245,196,0.4);}
+.sk.act{border-color:var(--c1);box-shadow:0 0 20px rgba(0,245,196,0.4);background:rgba(0,245,196,0.08);}
+.sk.cd{opacity:.3;}
+#minimap{position:absolute;bottom:88px;right:260px;border-radius:12px;overflow:hidden;border:1px solid var(--border);z-index:10;}
+#notif{position:absolute;top:72px;left:50%;transform:translateX(-50%);background:rgba(0,245,196,0.12);
+  border:1px solid rgba(0,245,196,0.25);border-radius:8px;padding:7px 18px;font-family:'Orbitron',monospace;
+  font-size:10px;letter-spacing:2px;color:var(--c1);opacity:0;transition:opacity .3s;pointer-events:none;z-index:20;}
+#notif.on{opacity:1;}
+#gameover{display:none;position:absolute;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(12px);
+  align-items:center;justify-content:center;z-index:50;pointer-events:auto;}
+#gameover.on{display:flex;}
+.go-card{text-align:center;background:rgba(13,13,31,.95);border:1px solid rgba(244,63,94,.25);border-radius:28px;padding:54px 64px;box-shadow:0 0 80px rgba(244,63,94,.15);}
+.go-card h1{font-family:'Orbitron',monospace;font-size:48px;font-weight:900;color:var(--c3);text-shadow:0 0 40px rgba(244,63,94,.5);margin-bottom:10px;}
+.go-card .go-sub{color:rgba(255,255,255,.4);font-size:15px;margin-bottom:6px;}
+.go-card .go-score{font-family:'Orbitron',monospace;font-size:44px;color:#fff;font-weight:900;margin-bottom:36px;}
+.go-card .go-score span{font-size:14px;color:rgba(255,255,255,.3);display:block;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;}
+@keyframes lvlup{0%{opacity:0;transform:translate(-50%,-50%) scale(.5);}30%{opacity:1;transform:translate(-50%,-60%) scale(1.1);}80%{opacity:1;transform:translate(-50%,-60%) scale(1);}100%{opacity:0;transform:translate(-50%,-80%) scale(.9);}}
+.lvl-popup{position:absolute;left:50%;top:40%;font-family:'Orbitron',monospace;font-size:22px;color:#fff;font-weight:900;pointer-events:none;animation:lvlup 2s ease forwards;text-shadow:0 0 30px var(--c1);z-index:30;white-space:nowrap;}
+/* blob lobby */
+.panel{background:rgba(0,0,0,.6);backdrop-filter:blur(5px);border-radius:12px;border:1px solid rgba(255,255,255,.1);color:#fff;padding:15px;position:absolute;box-shadow:0 4px 15px rgba(0,0,0,.5);}
+#blob-lobby{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:max(60px,8vh);padding-bottom:24px;overflow-y:auto;background:radial-gradient(ellipse 80% 60% at 50% 50%,#12042e 0%,var(--bg) 70%);z-index:5;}
+#blob-lobby canvas{position:absolute;inset:0;pointer-events:none;}
+.lobby-card{background:rgba(13,13,31,.88);backdrop-filter:blur(30px);border:1px solid rgba(0,245,196,.15);
+  border-radius:28px;padding:24px 32px 28px;width:min(480px,94vw);position:relative;}
+.lobby-card::before{content:'';position:absolute;inset:-1px;border-radius:28px;
+  background:linear-gradient(135deg,rgba(0,245,196,.1),transparent,rgba(124,58,237,.1));
+  -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;}
+.logo-wrap{text-align:center;margin-bottom:20px;position:relative;}
+@keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+.logo-sub2{font-family:'Orbitron',monospace;font-size:10px;letter-spacing:6px;text-transform:uppercase;color:rgba(255,255,255,.28);margin-top:6px;}
+.lobby-tabs{display:flex;gap:0;margin-bottom:20px;background:rgba(255,255,255,.04);border-radius:12px;padding:4px;}
+.emoji-picker{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:8px;}
+.ep-btn{font-size:18px;background:rgba(255,255,255,.04);border:2px solid rgba(255,255,255,.07);border-radius:10px;
+  width:100%;height:44px;cursor:none;transition:border-color .15s,background .15s,box-shadow .15s;
+  display:flex;align-items:center;justify-content:center;line-height:1;flex-shrink:0;}
+.ep-btn:hover{border-color:rgba(0,245,196,.4);background:rgba(0,245,196,.08);}
+.ep-btn.sel{border-color:var(--c1);background:rgba(0,245,196,.15);box-shadow:0 0 8px rgba(0,245,196,.25);}
+.color-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:6px;}
+.col-swatch{width:100%;aspect-ratio:1;border-radius:10px;border:3px solid transparent;cursor:none;transition:all .2s;}
+.col-swatch:hover{box-shadow:0 0 0 2px rgba(255,255,255,.3);}
+.col-swatch.sel{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.2),0 0 12px rgba(0,245,196,.3);}
+.skin-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
+.skin-btn{flex:1;min-width:56px;height:44px;border-radius:10px;border:2px solid rgba(255,255,255,.1);
+  cursor:none;transition:all .2s;overflow:hidden;background:#1a1a30;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;}
+.skin-btn:hover,.skin-btn.sel{border-color:var(--c1);box-shadow:0 0 10px rgba(0,245,196,.3);}
+.skin-btn canvas{width:40px;height:28px;border-radius:4px;}
+.tag-row{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;margin-top:6px;}
+.tag-col{width:100%;aspect-ratio:1;border-radius:50%;border:2px solid rgba(255,255,255,.1);cursor:none;transition:all .2s;}
+.tag-col:hover,.tag-col.sel{border-color:#fff;box-shadow:0 0 8px currentColor;}
+.tag-badge-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+.tag-badge{padding:5px 10px;border-radius:20px;font-size:10px;background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.1);cursor:none;transition:all .2s;font-family:'Orbitron',monospace;letter-spacing:1px;white-space:nowrap;}
+.tag-badge:hover,.tag-badge.sel{border-color:var(--c1);background:rgba(0,245,196,.1);color:var(--c1);}
+
+.preview-wrap{display:flex;justify-content:center;margin:10px 0 0;}
+#blob-preview{border-radius:50%;display:block;}
+#blob-preview2{border-radius:50%;display:block;}
+.lobby-lb{margin-top:24px;padding-top:20px;border-top:1px solid var(--border);}
+.lb-head{font-family:'Orbitron',monospace;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.3);text-align:center;margin-bottom:12px;}
+.lobby-lb-row{display:flex;align-items:center;gap:12px;padding:8px 4px;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px;}
+.lr-rank{font-family:'Orbitron',monospace;font-size:11px;color:rgba(255,255,255,.25);width:28px;text-align:center;}
+.lr-emoji{font-size:16px;}
+.lr-name{flex:1;color:rgba(255,255,255,.8);}
+.lr-score{font-family:'Orbitron',monospace;color:var(--c1);font-size:12px;font-weight:700;}
+.back-hub{position:absolute;top:16px;left:16px;z-index:20;background:rgba(13,13,31,.85);
+  border:1px solid var(--border);border-radius:50px;padding:7px 16px;font-family:'Orbitron',monospace;
+  font-size:9px;letter-spacing:2px;color:rgba(255,255,255,.5);cursor:none;transition:all .2s;pointer-events:auto;}
+.back-hub:hover{color:var(--c1);border-color:rgba(0,245,196,.3);}
+/* ── Lobby unified layout ── */
+.lsec{padding:14px 0;border-bottom:1px solid rgba(255,255,255,.05);}
+.lsec:first-child{padding-top:0;}
+.lsec-style{border-bottom:none;padding-bottom:0;}
+.lgen-btn{font-family:'Orbitron',monospace;font-size:9px;font-weight:700;letter-spacing:2px;
+  padding:0 14px;height:44px;border-radius:12px;border:1px solid rgba(0,245,196,.3);
+  background:rgba(0,245,196,.07);color:var(--c1);cursor:none;transition:all .2s;flex-shrink:0;}
+.lgen-btn:hover{background:rgba(0,245,196,.15);border-color:var(--c1);}
+.lstyle-toggle{display:flex;align-items:center;justify-content:space-between;
+  font-family:'Orbitron',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;
+  color:rgba(255,255,255,.3);cursor:none;padding:4px 0;transition:color .2s;}
+.lstyle-toggle:hover{color:rgba(255,255,255,.5);}
+.lstyle-arrow{transition:transform .2s;}
+.lstyle-arrow.open{transform:rotate(180deg);}
+.lstyle-body{padding-top:12px;}
+/* cust section */
+.cust-section{margin-bottom:14px;}
+.speed-slider-wrap{margin-top:8px;}
+.speed-slider{-webkit-appearance:none;appearance:none;width:100%;height:5px;border-radius:3px;
+  background:linear-gradient(to right,var(--c1) var(--pct,50%),rgba(255,255,255,.1) var(--pct,50%));
+  outline:none;cursor:none;transition:background .1s;}
+.speed-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;
+  border-radius:50%;background:var(--c1);box-shadow:0 0 10px rgba(0,245,196,.6);cursor:none;border:2px solid #07071a;}
+.speed-slider::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--c1);
+  box-shadow:0 0 10px rgba(0,245,196,.6);cursor:none;border:2px solid #07071a;}
+.speed-labels{display:flex;justify-content:space-between;margin-top:4px;}
+.speed-labels span{font-family:'Orbitron',monospace;font-size:8px;color:rgba(255,255,255,.2);letter-spacing:1px;}
+.speed-val{font-family:'Orbitron',monospace;font-size:13px;font-weight:700;color:var(--c1);text-align:center;
+  margin-top:4px;letter-spacing:2px;}
+/* ── TRIVIA APP ── */
+#trivia-screen{flex-direction:column;background:#0a0a14;overflow:hidden;}
+#trivia-root{flex:1;overflow-y:auto;width:100%;background:#0a0a14;}
+#trivia-root::-webkit-scrollbar{width:3px;}
+#trivia-root::-webkit-scrollbar-thumb{background:rgba(124,58,237,.4);}
+.t-back-hub{position:fixed;top:16px;left:16px;z-index:100;background:rgba(10,10,20,.9);
+  border:1px solid rgba(124,58,237,.25);border-radius:50px;padding:7px 16px;font-family:'Orbitron',monospace;
+  font-size:9px;letter-spacing:2px;color:rgba(255,255,255,.4);cursor:none;transition:all .2s;pointer-events:auto;}
+.t-back-hub:hover{color:#a78bfa;border-color:rgba(124,58,237,.5);}
+/* trivia common */
+.t-screen{min-height:100vh;padding:16px;background:#0a0a14;color:#fff;}
+.t-card{background:#111122;border:1px solid rgba(255,255,255,.06);border-radius:20px;padding:20px;}
+.t-inp{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;
+  padding:12px 16px;color:#fff;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;transition:all .25s;cursor:none;}
+.t-inp:focus{border-color:rgba(124,58,237,.5);background:rgba(124,58,237,.04);}
+.t-inp::placeholder{color:rgba(255,255,255,.2);}
+.t-btn-p{background:linear-gradient(135deg,#7c3aed,#ec4899);border:none;border-radius:12px;padding:13px 20px;
+  color:#fff;font-size:13px;font-weight:700;cursor:none;transition:all .25s;letter-spacing:.5px;width:100%;}
+.t-btn-p:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 24px rgba(124,58,237,.4);}
+.t-btn-p:disabled{opacity:.5;}
+.t-btn-s{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px 20px;
+  color:#fff;font-size:13px;font-weight:600;cursor:none;transition:all .25s;width:100%;}
+.t-btn-s:hover{background:rgba(255,255,255,.1);}
+.t-back{background:none;border:none;color:rgba(255,255,255,.4);font-size:13px;cursor:none;
+  display:flex;align-items:center;gap:6px;margin-bottom:20px;padding:0;transition:color .2s;}
+.t-back:hover{color:#a78bfa;}
+.t-title{font-family:'Orbitron',monospace;font-size:24px;font-weight:900;margin-bottom:4px;}
+.t-sub{color:rgba(255,255,255,.35);font-size:13px;margin-bottom:24px;}
+.t-label{font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:10px;display:block;font-family:'Orbitron',monospace;}
+.t-chip{padding:7px 14px;border-radius:20px;font-size:12px;font-weight:600;border:2px solid transparent;cursor:none;transition:all .2s;}
+.t-chip.on{background:rgba(124,58,237,.2);border-color:#7c3aed;color:#a78bfa;}
+.t-chip.off{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.1);color:rgba(255,255,255,.5);}
+.t-chip.off:hover{border-color:rgba(124,58,237,.4);}
+.t-tabs{display:flex;background:rgba(255,255,255,.04);border-radius:12px;padding:4px;margin-bottom:20px;}
+.t-tab{flex:1;padding:9px;text-align:center;font-size:12px;font-weight:600;border-radius:9px;cursor:none;transition:all .2s;color:rgba(255,255,255,.3);}
+.t-tab.on{background:rgba(124,58,237,.2);color:#a78bfa;}
+/* game answer buttons */
+.ans-btn{width:100%;padding:16px;border-radius:14px;text-align:left;font-size:14px;font-weight:600;
+  border:2px solid rgba(255,255,255,.1);background:#111122;color:#fff;cursor:none;
+  transition:all .3s;display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+.ans-btn:hover:not(:disabled){border-color:rgba(124,58,237,.6);background:rgba(124,58,237,.1);}
+.ans-btn.correct{background:rgba(34,197,148,.15);border-color:#22c594;}
+.ans-btn.wrong{background:rgba(244,63,94,.15);border-color:#f43f5e;}
+.ans-btn.dim{opacity:.4;}
+.ans-letter{width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,.08);
+  display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;flex-shrink:0;}
+.ans-btn.correct .ans-letter{background:#22c594;color:#000;}
+.ans-btn.wrong .ans-letter{background:#f43f5e;}
+/* leaderboard rows */
+.t-lb-row{display:flex;align-items:center;gap:12px;padding:14px;border-radius:16px;border:1px solid rgba(255,255,255,.06);background:#111122;margin-bottom:8px;}
+.t-lb-row.me{border-color:rgba(124,58,237,.4);background:rgba(124,58,237,.08);}
+.t-av{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;flex-shrink:0;}
+/* chat */
+.t-chat-msg{display:flex;gap:10px;margin-bottom:14px;}
+.t-chat-msg.me{flex-direction:row-reverse;}
+.t-chat-av{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;flex-shrink:0;}
+.t-chat-bubble{max-width:70%;padding:10px 14px;border-radius:16px;font-size:13px;line-height:1.5;}
+.t-chat-msg.me .t-chat-bubble{background:#7c3aed;border-radius:16px 4px 16px 16px;}
+.t-chat-msg:not(.me) .t-chat-bubble{background:#1a1a2e;border-radius:4px 16px 16px 16px;}
+/* room code display */
+.t-room-code{border:2px solid rgba(124,58,237,.5);background:rgba(124,58,237,.1);border-radius:20px;padding:16px 32px;display:inline-block;font-family:'Orbitron',monospace;font-size:36px;font-weight:900;letter-spacing:.25em;color:#c4b5fd;}
+/* stats */
+.t-stat{background:#111122;border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:20px;text-align:center;}
+.t-stat-val{font-family:'Orbitron',monospace;font-size:28px;font-weight:900;margin-top:8px;}
+/* progress bar */
+.t-progress{height:4px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden;margin-bottom:20px;}
+.t-progress-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#7c3aed,#ec4899);transition:width .5s;}
+</style>
+</head>
+<body>
+
+<div id="cursor"></div>
+<div id="cursor-dot"></div>
+<script>
+// Cursor runs immediately — NOT in module so it works on login screen too
+(function(){
+  var cur=document.getElementById('cursor');
+  var dot=document.getElementById('cursor-dot');
+  document.addEventListener('mousemove',function(e){
+    cur.style.left=e.clientX+'px';
+    cur.style.top=e.clientY+'px';
+    dot.style.left=e.clientX+'px';
+    dot.style.top=e.clientY+'px';
+    // also update blob mouse if game is active
+    if(window.__blobMouse){window.__blobMouse.x=e.clientX;window.__blobMouse.y=e.clientY;}
+  });
+})();
+</script>
+
+<!-- ══ LOGIN ══ -->
+<div id="login-screen" class="screen on">
+  <canvas id="login-bg"></canvas>
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo logo-lg">PARADOX</div>
+      <div class="logo-sub">Gaming Hub · by <span style="color:var(--c1)">Sree</span></div>
+    </div>
+    <div class="login-tabs">
+      <div class="login-tab on" id="ltab-in" onclick="authTab('in')">Sign In</div>
+      <div class="login-tab" id="ltab-up" onclick="authTab('up')">Sign Up</div>
+    </div>
+    <div class="auth-err" id="auth-err"></div>
+    <div id="auth-panel-in">
+      <div class="field-group"><label>Email</label><input type="email" id="si-email" placeholder="you@email.com" onkeydown="authKey(event,'in')"/></div>
+      <div class="field-group"><label>Password</label><input type="password" id="si-pass" placeholder="••••••••" onkeydown="authKey(event,'in')"/></div>
+      <div class="btn-row"><button class="btn btn-primary" onclick="doSignIn()">Sign In →</button></div>
+      <div class="auth-footer">No account? <a onclick="authTab('up')">Sign up free</a></div>
+    </div>
+    <div id="auth-panel-up" style="display:none">
+      <div class="field-group"><label>Display Name</label><input type="text" id="su-name" placeholder="Your username" maxlength="20" onkeydown="authKey(event,'up')"/></div>
+      <div class="field-group"><label>Email</label><input type="email" id="su-email" placeholder="you@email.com" onkeydown="authKey(event,'up')"/></div>
+      <div class="field-group"><label>Password</label><input type="password" id="su-pass" placeholder="Min 6 characters" onkeydown="authKey(event,'up')"/></div>
+      <div class="btn-row"><button class="btn btn-primary" onclick="doSignUp()">Create Account →</button></div>
+      <div class="auth-footer">Have account? <a onclick="authTab('in')">Sign in</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ HUB ══ -->
+<div id="hub-screen" class="screen">
+  <canvas id="hub-bg"></canvas>
+  <div class="hub-notif" id="hub-notif"></div>
+  <div class="hub-user" id="hub-user">
+    <div class="hub-avatar" id="hub-av">S</div>
+    <span class="hub-uname" id="hub-uname">Player</span>
+    <button class="hub-out" onclick="doSignOut()">Log Out</button>
+  </div>
+
+  <!-- Leaderboard Panel -->
+  <div class="hub-lb-panel">
+    <div class="hub-lb-title">🏆 Leaderboard</div>
+    <div class="hub-lb-tabs">
+      <div class="hub-lb-tab on" id="hlb-tab-arena" onclick="hubLbTab('arena')">Arena</div>
+      <div class="hub-lb-tab" id="hlb-tab-trivia" onclick="hubLbTab('trivia')">Trivia</div>
+      <div class="hub-lb-tab" id="hlb-tab-chess" onclick="hubLbTab('chess')">Chess</div>
+    </div>
+    <div id="hub-lb-list"><div style="text-align:center;color:rgba(255,255,255,.15);padding:12px;font-size:11px">Loading…</div></div>
+  </div>
+
+  <!-- Friends Panel -->
+  <div class="hub-fr-panel">
+    <div class="hub-fr-title">👥 Friends</div>
+    <div id="hub-fr-reqs"></div>
+    <div id="hub-fr-list"><div class="hub-fr-empty">No friends yet.<br>Add from the leaderboard!</div></div>
+  </div>
+
+  <div class="hub-wrap">
+    <div class="hub-logo">
+      <div class="logo logo-lg">PARADOX</div>
+      <div class="logo-sub" style="text-align:center;margin-top:6px">Choose your game</div>
+    </div>
+    <div class="hub-apps">
+      <div class="app-card blob" onclick="openBlob()">
+        <div class="app-icon"><svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="28" cy="28" r="16" stroke="#00f5c4" stroke-width="2.5" opacity="0.9"/>
+  <circle cx="28" cy="28" r="9" fill="#00f5c4" opacity="0.15"/>
+  <circle cx="28" cy="28" r="4" fill="#00f5c4" opacity="0.9"/>
+  <circle cx="44" cy="18" r="4" stroke="#00f5c4" stroke-width="1.8" opacity="0.5"/>
+  <circle cx="12" cy="38" r="3" stroke="#00f5c4" stroke-width="1.5" opacity="0.35"/>
+  <circle cx="46" cy="36" r="2.5" fill="#00f5c4" opacity="0.4"/>
+  <circle cx="10" cy="20" r="2" fill="#00f5c4" opacity="0.3"/>
+</svg></div>
+        <div class="app-name">BOB ARENA</div>
+        <div class="app-sub">Multiplayer · Eat or be eaten</div>
+      </div>
+      <div class="app-card trivia" onclick="openTrivia()">
+        <div class="app-icon"><svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <polygon points="28,4 49,16 49,40 28,52 7,40 7,16" stroke="#a78bfa" stroke-width="2" opacity="0.7"/>
+  <path d="M21 22c0-3.86 3.13-7 7-7s7 3.14 7 7c0 4-4 5.5-4 9" stroke="#a78bfa" stroke-width="2.5" stroke-linecap="round" opacity="0.9"/>
+  <circle cx="28" cy="40" r="2.2" fill="#a78bfa" opacity="0.9"/>
+  <line x1="7" y1="16" x2="28" y2="4" stroke="#a78bfa" stroke-width="0" opacity="0"/>
+</svg></div>
+        <div class="app-name">PARADOX TRIVIA</div>
+        <div class="app-sub">AI Quiz · Compete with friends</div>
+      </div>
+      <div class="app-card tetris" onclick="openTetris()">
+        <div class="app-icon"><svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="6" y="20" width="12" height="12" rx="2" fill="#22d3ee" opacity="0.9"/>
+  <rect x="20" y="20" width="12" height="12" rx="2" fill="#22d3ee" opacity="0.7"/>
+  <rect x="20" y="34" width="12" height="12" rx="2" fill="#22d3ee" opacity="0.5"/>
+  <rect x="34" y="34" width="12" height="12" rx="2" fill="#3b82f6" opacity="0.9"/>
+  <rect x="34" y="20" width="12" height="12" rx="2" fill="#3b82f6" opacity="0.6"/>
+  <rect x="34" y="6" width="12" height="12" rx="2" fill="#3b82f6" opacity="0.35"/>
+</svg></div>
+        <div class="app-name">TETRIS</div>
+        <div class="app-sub">Classic · Stack &amp; clear lines</div>
+      </div>
+      <div class="app-card g2048" onclick="open2048()">
+        <div class="app-icon"><svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="4" y="4" width="22" height="22" rx="4" fill="#f59e0b" opacity="0.15" stroke="#f59e0b" stroke-width="1.5" opacity="0.6"/>
+  <rect x="30" y="4" width="22" height="22" rx="4" fill="#f97316" opacity="0.1" stroke="#f97316" stroke-width="1.5" opacity="0.5"/>
+  <rect x="4" y="30" width="22" height="22" rx="4" fill="#ef4444" opacity="0.1" stroke="#ef4444" stroke-width="1.5" opacity="0.5"/>
+  <rect x="30" y="30" width="22" height="22" rx="4" fill="#fbbf24" opacity="0.25" stroke="#fbbf24" stroke-width="2" opacity="0.9"/>
+  <text x="15" y="20" text-anchor="middle" font-family="Orbitron,monospace" font-size="9" font-weight="900" fill="#fbbf24" opacity="0.9">2</text>
+  <text x="41" y="20" text-anchor="middle" font-family="Orbitron,monospace" font-size="9" font-weight="900" fill="#f97316" opacity="0.8">4</text>
+  <text x="15" y="46" text-anchor="middle" font-family="Orbitron,monospace" font-size="9" font-weight="900" fill="#ef4444" opacity="0.8">8</text>
+  <text x="41" y="46" text-anchor="middle" font-family="Orbitron,monospace" font-size="8" font-weight="900" fill="#fbbf24">2048</text>
+</svg></div>
+        <div class="app-name">2048</div>
+        <div class="app-sub">Puzzle · Merge to 2048</div>
+      </div>
+      <div class="app-card chess" onclick="openChess()">
+        <div class="app-icon"><svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="4" width="11" height="11" rx="1.5" fill="#4ade80" opacity="0.2" stroke="#4ade80" stroke-width="1.2"/><rect x="19" y="4" width="11" height="11" rx="1.5" fill="none" stroke="rgba(74,222,128,.15)" stroke-width="1"/><rect x="34" y="4" width="11" height="11" rx="1.5" fill="#4ade80" opacity="0.2" stroke="#4ade80" stroke-width="1.2"/><rect x="4" y="19" width="11" height="11" rx="1.5" fill="none" stroke="rgba(74,222,128,.15)" stroke-width="1"/><rect x="19" y="19" width="11" height="11" rx="1.5" fill="#22d3ee" opacity="0.35" stroke="#22d3ee" stroke-width="1.8"/><rect x="34" y="19" width="11" height="11" rx="1.5" fill="none" stroke="rgba(74,222,128,.15)" stroke-width="1"/><rect x="4" y="34" width="11" height="11" rx="1.5" fill="#4ade80" opacity="0.2" stroke="#4ade80" stroke-width="1.2"/><rect x="19" y="34" width="11" height="11" rx="1.5" fill="none" stroke="rgba(74,222,128,.15)" stroke-width="1"/><rect x="34" y="34" width="11" height="11" rx="1.5" fill="#4ade80" opacity="0.2" stroke="#4ade80" stroke-width="1.2"/><path d="M26 8 L29 13 L23 13 Z" fill="#22d3ee" opacity="0.9"/><rect x="25" y="13" width="5" height="3" rx="1" fill="#22d3ee" opacity="0.6"/></svg></div>
+        <div class="app-name">CHESS</div>
+        <div class="app-sub">vs AI · Pass &amp; play · Rooms</div>
+      </div>
+    </div>
+  </div>
+  <div class="hub-footer">by <span>Sree</span> · Paradox Hub</div>
+</div>
+
+<!-- ══ BOB ARENA ══ -->
+<div id="blob-screen" class="screen">
+  <button class="back-hub" onclick="leaveBlob()">← Hub</button>
+
+  <!-- Blob Lobby -->
+  <div id="blob-lobby">
+    <canvas id="lobby-canvas"></canvas>
+    <div class="logo-wrap">
+      <div class="logo" style="font-size:clamp(36px,5vw,64px)">BOB ARENA</div>
+      <div class="logo-sub2">Multiplayer · Live</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.2);margin-top:8px;letter-spacing:2px">By <span style="color:var(--c1);font-weight:700">Sree</span></div>
+    </div>
+    <div class="lobby-card">
+
+      <!-- ── SECTION 1: Identity ── -->
+      <div class="lsec">
+        <div class="field-group">
+          <label>Your Name</label>
+          <input type="text" id="inp-name" placeholder="Enter your username…" maxlength="20"/>
+        </div>
+        <div class="field-group" style="margin-bottom:0">
+          <label>Choose Your Face</label>
+          <div class="emoji-picker" id="emoji-pick"></div>
+        </div>
+      </div>
+
+      <!-- ── SECTION 2: Room ── -->
+      <div class="lsec">
+        <div class="field-group" style="margin-bottom:10px">
+          <label>Room Code <span style="color:rgba(255,255,255,.15);font-size:9px;text-transform:none;letter-spacing:0;font-family:DM Sans,sans-serif">· leave blank to create a new room</span></label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="text" id="inp-room" placeholder="e.g. FIRE42" maxlength="8"
+              style="text-transform:uppercase;flex:1;font-family:Orbitron,monospace;letter-spacing:3px;font-size:15px;font-weight:700"
+              oninput="this.value=this.value.toUpperCase()"
+              onkeydown="if(event.key==='Enter')enterRoom()"/>
+            <button class="lgen-btn" onclick="genAndFill()">NEW</button>
+          </div>
+        </div>
+        <!-- Room code display after create -->
+        <div id="room-display" style="display:none;text-align:center;padding:10px;background:rgba(0,245,196,.06);border:1px solid rgba(0,245,196,.2);border-radius:12px;margin-top:6px">
+          <div style="font-size:9px;font-family:Orbitron,monospace;letter-spacing:3px;color:rgba(0,245,196,.5);margin-bottom:4px">YOUR ROOM CODE</div>
+          <div id="room-display-code" style="font-family:Orbitron,monospace;font-size:26px;font-weight:900;color:var(--c1);letter-spacing:6px"></div>
+          <div style="font-size:10px;color:rgba(255,255,255,.25);margin-top:4px">Share with friends to play together</div>
+        </div>
+      </div>
+
+      <!-- ── SECTION 3: Speed ── -->
+      <div class="lsec" style="padding-bottom:14px">
+        <div class="field-group" style="margin-bottom:0">
+          <label>Blob Speed · <span id="speed-val-label" style="color:var(--c1)">NORMAL</span></label>
+          <input type="range" class="speed-slider" id="speed-slider" min="1" max="5" step="0.5" value="2.4"
+            oninput="updateSpeedSlider(this.value)"/>
+          <div class="speed-labels"><span>Slow</span><span>Normal</span><span>Fast</span><span>Max</span></div>
+        </div>
+      </div>
+
+      <!-- ── SECTION 4: Style (collapsible) ── -->
+      <div class="lsec lsec-style">
+        <div class="lstyle-toggle" onclick="toggleBlobStyle(this)">
+          <span>Bob Style</span>
+          <span class="lstyle-arrow">▼</span>
+        </div>
+        <div class="lstyle-body" style="display:none">
+          <div class="cust-section"><label class="t-label">Color</label><div class="color-row" id="blob-color-row"></div></div>
+          <div class="cust-section"><label class="t-label">Skin</label><div class="skin-row" id="skin-row"></div></div>
+          <div class="cust-section"><label class="t-label">Tag Color</label><div class="tag-row" id="tag-color-row"></div></div>
+          <div class="cust-section"><label class="t-label">Badge</label><div class="tag-badge-row" id="tag-badge-row"></div></div>
+          <div class="preview-wrap"><canvas id="blob-preview" width="80" height="80"></canvas><canvas id="blob-preview2" width="80" height="80" style="display:none"></canvas></div>
+        </div>
+      </div>
+
+      <!-- ── Buttons ── -->
+      <div class="btn-row" style="margin-top:4px">
+        <button class="btn btn-primary" onclick="enterRoom()">▶ Play</button>
+      </div>
+      <div id="lobby-lb-wrap" style="margin-top:18px;padding-top:16px;border-top:1px solid rgba(255,255,255,.05)">
+        <div class="lb-head">🏆 Global Leaders</div><div id="lobby-lb"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Blob Game -->
+  <div id="game" style="display:none;position:absolute;inset:0;">
+    <canvas id="canvas"></canvas>
+    <div class="sp" id="sp-left">
+      <div class="sp-hdr">
+        <div class="sp-title">Leaderboard</div>
+        <div class="sp-tabs">
+          <div class="sp-tab on" id="tab-global" onclick="setTab('global')">Global</div>
+          <div class="sp-tab" id="tab-room" onclick="setTab('room')">Room</div>
+          <div class="sp-tab" id="tab-friends" onclick="setTab('friends')">Friends</div>
+        </div>
+      </div>
+      <div id="lb-list"></div>
+    </div>
+    <div class="sp" id="sp-right">
+      <div class="sp-hdr"><div class="sp-title">Global Chat</div></div>
+      <div id="chat-msgs"></div>
+      <div class="chat-inp-row">
+        <input type="text" id="chat-inp" placeholder="Message…" maxlength="100" onkeydown="chatKey(event)"/>
+        <button class="chat-send" onclick="sendChat()">Send</button>
+      </div>
+    </div>
+    <div id="hud">
+      <div class="hud-item"><div class="hud-label">Level</div><div class="hud-val hl" id="h-lvl">1</div></div>
+      <div class="hud-item"><div class="hud-label">Score</div><div class="hud-val" id="h-score">0</div></div>
+      <div class="hud-item"><div class="hud-label">Speed</div><div class="hud-val" id="h-speed" style="color:var(--c1)">2.4×</div></div>
+      <div class="hud-item"><div class="hud-label">Rank</div><div class="hud-val" id="h-rank">#—</div></div>
+      <div class="hud-item"><div class="hud-label">Players</div><div class="hud-val hl" id="h-players">1</div></div>
+    </div>
+    <div id="notif"></div>
+    <div id="room-pill">ROOM: <span id="room-code">—</span> · <span id="room-players">1</span> online</div>
+    <div id="skills">
+      <div class="sk rdy" id="sk-q"><span style="font-family:Orbitron,monospace;font-size:9px;letter-spacing:1px">ZM</span><span class="sk-key">Q</span></div>
+      <div class="sk rdy" id="sk-sp"><span style="font-family:Orbitron,monospace;font-size:9px;letter-spacing:1px">DSH</span><span class="sk-key">SPC</span></div>
+    </div>
+    <canvas id="minimap" width="120" height="120"></canvas>
+    <div id="gameover">
+      <div class="go-card">
+        <h1>EATEN!</h1>
+        <div class="go-sub">Final Score</div>
+        <div class="go-score"><span>points</span><span id="go-score">0</span></div>
+        <div style="display:flex;gap:12px;justify-content:center">
+          <button class="btn btn-primary" style="width:160px" onclick="restartGame()">Play Again</button>
+          <button class="btn btn-outline" style="width:160px" onclick="leaveBlob()">← Hub</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TRIVIA ══ -->
+<div id="trivia-screen" class="screen">
+  <button class="t-back-hub" onclick="leaveTrivia()">← Hub</button>
+  <div id="trivia-root"></div>
+</div>
+
+
+<!-- ══ TETRIS ══ -->
+<div id="tetris-screen" class="screen">
+  <button class="g-back" onclick="leaveTetris()">← Hub</button>
+  <div id="tetris-wrap">
+    <div id="tetris-side">
+      <div class="tet-panel">
+        <div class="ts-label">Score</div>
+        <div class="ts-val" id="tet-score">0</div>
+      </div>
+      <div class="tet-panel">
+        <div class="ts-label">Level</div>
+        <div class="ts-val" id="tet-level">1</div>
+      </div>
+      <div class="tet-panel">
+        <div class="ts-label">Lines</div>
+        <div class="ts-val" id="tet-lines">0</div>
+      </div>
+      <div class="tet-panel">
+        <div class="ts-label" style="margin-bottom:10px">Next</div>
+        <canvas id="tet-next" width="118" height="76" style="width:118px;height:76px"></canvas>
+      </div>
+    </div>
+    <canvas id="tetris-canvas" width="320" height="640"></canvas>
+  </div>
+</div>
+
+<!-- ══ 2048 ══ -->
+<div id="g2048-screen" class="screen">
+  <button class="g-back" onclick="leave2048()">← Hub</button>
+  <div class="g2048-wrap">
+    <div class="g2048-head">
+      <div class="g2048-title">2048</div>
+      <div class="g2048-scores">
+        <div class="g2048-sc"><div class="lbl">SCORE</div><div class="val" id="g2048-score">0</div></div>
+        <div class="g2048-sc"><div class="lbl">BEST</div><div class="val" id="g2048-best">0</div></div>
+      </div>
+    </div>
+    <div class="g2048-sub">
+      <div class="g2048-desc">Join the numbers and get to <strong>2048</strong>!</div>
+      <button class="g2048-newbtn" onclick="restart2048()">New Game</button>
+    </div>
+    <div class="g2048-board" id="g2048-board">
+      <div class="g2048-grid" id="g2048-grid"></div>
+      <div id="g2048-tiles"></div>
+      <div class="g2048-over" id="g2048-over"><span>Game Over!</span><button class="g2048-retry" onclick="restart2048()">Try Again</button></div>
+      <div class="g2048-win" id="g2048-win"><span>You Win! 🎉</span><button class="g2048-retry" onclick="restart2048()">Keep Going</button></div>
+    </div>
+    <div style="text-align:center;margin-top:12px;font-size:11px;color:#aaa;font-family:Orbitron,monospace;letter-spacing:2px">USE ARROW KEYS OR SWIPE</div>
+  </div>
+</div>
+
+
+<!-- ══ CHESS ══ -->
+<div id="chess-screen" class="screen">
+  <button class="g-back" onclick="leaveChess()">← Hub</button>
+  <div id="chess-lobby" class="on">
+    <div class="chess-logo">CHESS</div>
+    <div class="chess-logo-sub">Strategy · Paradox Hub</div>
+    <div class="chess-modes">
+      <div class="chess-mc ai" onclick="chessPickAI()">
+        <div class="chess-mc-icon">
+          <svg viewBox="0 0 44 44" fill="none"><rect x="3" y="3" width="9" height="9" rx="1.5" fill="#4ade80" opacity="0.3" stroke="#4ade80" stroke-width="1.2"/><rect x="17" y="3" width="9" height="9" rx="1.5" fill="none" stroke="rgba(74,222,128,.2)" stroke-width="1"/><rect x="31" y="3" width="9" height="9" rx="1.5" fill="#4ade80" opacity="0.3" stroke="#4ade80" stroke-width="1.2"/><rect x="3" y="17" width="9" height="9" rx="1.5" fill="none" stroke="rgba(74,222,128,.2)" stroke-width="1"/><rect x="17" y="17" width="9" height="9" rx="1.5" fill="#22d3ee" opacity="0.5" stroke="#22d3ee" stroke-width="1.8"/><rect x="31" y="17" width="9" height="9" rx="1.5" fill="none" stroke="rgba(74,222,128,.2)" stroke-width="1"/><rect x="3" y="31" width="9" height="9" rx="1.5" fill="#4ade80" opacity="0.3" stroke="#4ade80" stroke-width="1.2"/><rect x="17" y="31" width="9" height="9" rx="1.5" fill="none" stroke="rgba(74,222,128,.2)" stroke-width="1"/><rect x="31" y="31" width="9" height="9" rx="1.5" fill="#4ade80" opacity="0.3" stroke="#4ade80" stroke-width="1.2"/></svg>
+        </div>
+        <div class="chess-mc-title">vs AI</div>
+        <div class="chess-mc-desc">Play against engine</div>
+      </div>
+      <div class="chess-mc pass" onclick="chessStartPass()">
+        <div class="chess-mc-icon">
+          <svg viewBox="0 0 44 44" fill="none"><circle cx="14" cy="14" r="8" stroke="#fbbf24" stroke-width="1.8" fill="rgba(251,191,36,.1)"/><circle cx="30" cy="30" r="8" stroke="#f97316" stroke-width="1.8" fill="rgba(249,115,22,.1)"/><path d="M20 20 L24 24" stroke="rgba(255,255,255,.2)" stroke-width="1.5"/><circle cx="14" cy="14" r="3" fill="#fbbf24" opacity="0.8"/><circle cx="30" cy="30" r="3" fill="#f97316" opacity="0.8"/></svg>
+        </div>
+        <div class="chess-mc-title">Pass &amp; Play</div>
+        <div class="chess-mc-desc">2 players, same device</div>
+      </div>
+      <div class="chess-mc online" onclick="chessShowOnline()">
+        <div class="chess-mc-icon">
+          <svg viewBox="0 0 44 44" fill="none"><circle cx="22" cy="22" r="18" stroke="#a78bfa" stroke-width="1.5" fill="rgba(167,139,250,.06)"/><path d="M22 4 C12 10 12 34 22 40" stroke="#a78bfa" stroke-width="1.2" fill="none"/><path d="M22 4 C32 10 32 34 22 40" stroke="#a78bfa" stroke-width="1.2" fill="none"/><line x1="4" y1="22" x2="40" y2="22" stroke="#a78bfa" stroke-width="1" opacity="0.5"/><circle cx="22" cy="22" r="3" fill="#a78bfa" opacity="0.8"/></svg>
+        </div>
+        <div class="chess-mc-title">Online</div>
+        <div class="chess-mc-desc">Create or join a room</div>
+      </div>
+    </div>
+    <div id="chess-diff-picker">
+      <div class="chess-diff-title">Choose Difficulty</div>
+      <div class="chess-diff-btns">
+        <button class="chess-diff-btn" onclick="chessStartAI(1)">Novice</button>
+        <button class="chess-diff-btn" onclick="chessStartAI(2)">Easy</button>
+        <button class="chess-diff-btn" onclick="chessStartAI(3)">Medium</button>
+        <button class="chess-diff-btn" onclick="chessStartAI(4)">Hard</button>
+      </div>
+      <div class="chess-back-link" onclick="chessPickAI(true)">← Back</div>
+    </div>
+    <div id="chess-online-panel">
+      <div class="chess-onl-label">Your Room Code</div>
+      <div class="chess-room-code" id="chess-room-code">----</div>
+      <button class="chess-diff-btn" style="border-color:rgba(167,139,250,.4);color:#c4b5fd;cursor:none" onclick="chessCreateRoom()">Create Room</button>
+      <div class="chess-onl-label" style="margin-top:8px">— or join —</div>
+      <div class="chess-onl-row">
+        <input id="chess-join-input" class="chess-onl-input" maxlength="4" placeholder="CODE" oninput="this.value=this.value.toUpperCase()"/>
+        <button class="chess-diff-btn" style="border-color:rgba(167,139,250,.4);color:#c4b5fd;cursor:none" onclick="chessJoinRoom()">Join</button>
+      </div>
+      <div id="chess-onl-status" style="font-family:Orbitron,monospace;font-size:10px;color:rgba(255,255,255,.3);min-height:18px;text-align:center;letter-spacing:2px"></div>
+      <div class="chess-back-link" onclick="chessShowOnline(true)">← Back</div>
+    </div>
+  </div>
+  <div id="chess-game">
+    <div class="cg-header">
+      <div class="cg-player"><div class="cg-dot" id="chess-dot-top" style="background:#4ade80"></div><div class="cg-pname" id="chess-name-top">Black</div></div>
+      <div class="cg-turn" id="chess-turn-label">White to move</div>
+      <div class="cg-timer" id="chess-timer-top" style="color:#4ade80;font-family:Orbitron,monospace;font-size:18px;font-weight:900"></div>
+    </div>
+    <div class="cg-captured" id="chess-cap-top"></div>
+    <div id="chess-board-wrap"><div id="chess-board"></div></div>
+    <div class="cg-captured" id="chess-cap-bot"></div>
+    <div class="cg-footer">
+      <div class="cg-moves" id="chess-move-log"></div>
+      <button class="cg-resign" onclick="chessResign()">Resign</button>
+    </div>
+  </div>
+  <div id="chess-result">
+    <div class="cr-title" id="chess-result-title">Checkmate!</div>
+    <div class="cr-sub" id="chess-result-sub">White wins</div>
+    <div class="cr-btns">
+      <button class="cr-btn primary" onclick="chessPlayAgain()">Play Again</button>
+      <button class="cr-btn secondary" onclick="leaveChess()">← Hub</button>
+    </div>
+  </div>
+</div>
+
+<!-- Stubs: ensure inline onclick attrs work before ES module loads -->
+<script>
+(function(){
+  var fns=['authTab','authKey','doSignIn','doSignUp','doSignOut','enterRoom','genAndFill','toggleBlobStyle','hubLbTab','sendFriendReq','acceptFriendReq','declineFriendReq',
+    'openBlob','openTrivia','leaveBlob','leaveTrivia',
+    'openTetris','leaveTetris','open2048','leave2048','restart2048','openChess','leaveChess','chessPickAI','chessStartPass','chessShowOnline','chessCreateRoom','chessJoinRoom','chessStartAI','chessResign','chessPlayAgain',
+    'lobbyTab','createRoom','joinRoom','setTab',
+    'sendChat','chatKey','restartGame'];
+  fns.forEach(function(fn){
+    window[fn]=function(){
+      var real=window['__'+fn];
+      if(typeof real==='function') return real.apply(this,arguments);
+    };
+  });
+  // Placeholder T so onclick="T.show(...)" doesn't crash before module loads
+  window.T={show:function(){},render:function(){}};
+})();
+</script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
