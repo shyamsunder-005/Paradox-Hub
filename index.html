@@ -164,7 +164,7 @@ body{background:var(--bg);font-family:'DM Sans',sans-serif;color:#fff;overflow:h
 .app-card.chess::before{background:linear-gradient(90deg,#4ade80,#22d3ee);}
 .app-card.chess .app-name{color:#4ade80;}
 
-/* ── HUB grid: 2x2 on wide, wrap on narrow ── */
+/* ── HUB grid: 3x2 on wide, wrap on narrow ── */
 .hub-apps{display:grid;grid-template-columns:repeat(3,200px);gap:20px;justify-content:center;}
 
 @media(max-width:680px){.hub-apps{grid-template-columns:1fr 1fr;}}
@@ -679,6 +679,65 @@ body{background:var(--bg);font-family:'DM Sans',sans-serif;color:#fff;overflow:h
 /* progress bar */
 .t-progress{height:4px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden;margin-bottom:20px;}
 .t-progress-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#7c3aed,#ec4899);transition:width .5s;}
+
+/* ── MILITIA ── */
+.app-card.militia::before{background:linear-gradient(90deg,#f43f5e,#f97316);}
+.app-card.militia .app-name{color:#f43f5e;}
+#militia-screen{background:#050d05;align-items:center;justify-content:center;flex-direction:column;overflow:hidden;}
+#militia-screen .g-back{position:absolute;top:16px;left:16px;background:rgba(13,13,31,.85);
+  border:1px solid rgba(244,63,94,.25);border-radius:50px;padding:7px 16px;
+  font-family:'Orbitron',monospace;font-size:9px;letter-spacing:2px;
+  color:rgba(255,255,255,.4);transition:all .2s;z-index:30;cursor:none;}
+#militia-screen .g-back:hover{color:#f43f5e;border-color:rgba(244,63,94,.6);}
+#militia-lobby{position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;padding:70px 16px 20px;
+  background:radial-gradient(ellipse 80% 60% at 50% 50%,#1a0508 0%,#050d05 70%);z-index:10;}
+#militia-game{position:absolute;inset:0;display:none;z-index:5;}
+#militia-canvas{display:block;width:100%;height:100%;}
+.ml-title{font-family:'Orbitron',monospace;font-size:clamp(32px,5vw,54px);font-weight:900;
+  background:linear-gradient(135deg,#f43f5e,#f97316);-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 24px rgba(244,63,94,.4));margin-bottom:6px;}
+.ml-sub{font-family:'Orbitron',monospace;font-size:10px;letter-spacing:4px;
+  color:rgba(255,255,255,.2);margin-bottom:36px;text-transform:uppercase;}
+.ml-modes{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-bottom:20px;}
+.ml-mc{width:190px;background:rgba(13,13,31,.88);border:1px solid rgba(255,255,255,.08);
+  border-radius:20px;padding:28px 18px;text-align:center;cursor:none;transition:all .3s;position:relative;overflow:hidden;}
+.ml-mc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:20px 20px 0 0;}
+.ml-mc.ai::before{background:linear-gradient(90deg,#f43f5e,#f97316);}
+.ml-mc.online::before{background:linear-gradient(90deg,#a78bfa,#f472b6);}
+.ml-mc:hover{transform:translateY(-6px);border-color:rgba(255,255,255,.15);box-shadow:0 20px 50px rgba(0,0,0,.5);}
+.ml-mc-icon{font-size:36px;margin-bottom:14px;}
+.ml-mc-title{font-family:'Orbitron',monospace;font-size:13px;font-weight:900;margin-bottom:5px;}
+.ml-mc.ai .ml-mc-title{color:#f43f5e;} .ml-mc.online .ml-mc-title{color:#c4b5fd;}
+.ml-mc-desc{font-size:10px;color:rgba(255,255,255,.28);}
+.ml-panel{display:none;flex-direction:column;align-items:center;gap:14px;
+  background:rgba(13,13,31,.92);border:1px solid rgba(244,63,94,.15);border-radius:20px;
+  padding:28px 32px;width:min(380px,92vw);}
+.ml-panel.on{display:flex;}
+.ml-panel-title{font-family:'Orbitron',monospace;font-size:13px;letter-spacing:2px;color:#f43f5e;}
+.ml-btn-row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+.ml-btn{padding:9px 22px;border-radius:20px;font-family:'Orbitron',monospace;font-size:9px;
+  letter-spacing:2px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);
+  color:rgba(255,255,255,.4);transition:all .2s;cursor:none;}
+.ml-btn:hover{border-color:#f43f5e;background:rgba(244,63,94,.1);color:#f43f5e;}
+.ml-back-link{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:2px;
+  color:rgba(255,255,255,.2);margin-top:4px;transition:color .2s;cursor:none;}
+.ml-back-link:hover{color:rgba(255,255,255,.5);}
+.ml-room-code{border:2px solid rgba(244,63,94,.4);background:rgba(244,63,94,.06);
+  border-radius:14px;padding:12px 28px;font-family:'Orbitron',monospace;font-size:30px;
+  font-weight:900;letter-spacing:.2em;color:#fca5a5;margin:6px 0;min-width:160px;text-align:center;}
+.ml-onl-input{background:rgba(255,255,255,.05);border:1px solid rgba(244,63,94,.2);
+  border-radius:10px;padding:10px 16px;color:#fff;font-size:16px;font-family:'Orbitron',monospace;
+  letter-spacing:.15em;text-align:center;width:180px;outline:none;cursor:none;}
+.ml-onl-input:focus{border-color:rgba(244,63,94,.5);}
+.ml-onl-row{display:flex;gap:10px;align-items:center;}
+.ml-controls-hint{font-family:'Orbitron',monospace;font-size:8px;letter-spacing:1px;
+  color:rgba(255,255,255,.15);text-align:center;line-height:2;}
+#ml-back-ingame{position:fixed;top:12px;left:12px;z-index:50;
+  background:rgba(13,13,31,.85);border:1px solid rgba(244,63,94,.25);border-radius:50px;
+  padding:6px 14px;font-family:'Orbitron',monospace;font-size:8px;letter-spacing:2px;
+  color:rgba(255,255,255,.4);transition:all .2s;cursor:none;}
+#ml-back-ingame:hover{color:#f43f5e;border-color:rgba(244,63,94,.6);}
 </style>
 </head>
 <body>
@@ -747,6 +806,7 @@ body{background:var(--bg);font-family:'DM Sans',sans-serif;color:#fff;overflow:h
       <div class="hub-lb-tab on" id="hlb-tab-arena" onclick="hubLbTab('arena')">Arena</div>
       <div class="hub-lb-tab" id="hlb-tab-trivia" onclick="hubLbTab('trivia')">Trivia</div>
       <div class="hub-lb-tab" id="hlb-tab-chess" onclick="hubLbTab('chess')">Chess</div>
+      <div class="hub-lb-tab" id="hlb-tab-militia" onclick="hubLbTab('militia')">Battle</div>
     </div>
     <div id="hub-lb-list"><div style="text-align:center;color:rgba(255,255,255,.15);padding:12px;font-size:11px">Loading…</div></div>
   </div>
@@ -817,6 +877,20 @@ body{background:var(--bg);font-family:'DM Sans',sans-serif;color:#fff;overflow:h
         <div class="app-icon"><svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="4" width="11" height="11" rx="1.5" fill="#4ade80" opacity="0.2" stroke="#4ade80" stroke-width="1.2"/><rect x="19" y="4" width="11" height="11" rx="1.5" fill="none" stroke="rgba(74,222,128,.15)" stroke-width="1"/><rect x="34" y="4" width="11" height="11" rx="1.5" fill="#4ade80" opacity="0.2" stroke="#4ade80" stroke-width="1.2"/><rect x="4" y="19" width="11" height="11" rx="1.5" fill="none" stroke="rgba(74,222,128,.15)" stroke-width="1"/><rect x="19" y="19" width="11" height="11" rx="1.5" fill="#22d3ee" opacity="0.35" stroke="#22d3ee" stroke-width="1.8"/><rect x="34" y="19" width="11" height="11" rx="1.5" fill="none" stroke="rgba(74,222,128,.15)" stroke-width="1"/><rect x="4" y="34" width="11" height="11" rx="1.5" fill="#4ade80" opacity="0.2" stroke="#4ade80" stroke-width="1.2"/><rect x="19" y="34" width="11" height="11" rx="1.5" fill="none" stroke="rgba(74,222,128,.15)" stroke-width="1"/><rect x="34" y="34" width="11" height="11" rx="1.5" fill="#4ade80" opacity="0.2" stroke="#4ade80" stroke-width="1.2"/><path d="M26 8 L29 13 L23 13 Z" fill="#22d3ee" opacity="0.9"/><rect x="25" y="13" width="5" height="3" rx="1" fill="#22d3ee" opacity="0.6"/></svg></div>
         <div class="app-name">CHESS</div>
         <div class="app-sub">vs AI · Pass &amp; play · Rooms</div>
+      </div>
+      <div class="app-card militia" onclick="openMilitia()">
+        <div class="app-icon"><svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="18" y="12" width="20" height="26" rx="4" fill="#f43f5e" opacity="0.9"/>
+          <rect x="8"  y="28" width="10" height="16" rx="3" fill="#f43f5e" opacity="0.7"/>
+          <rect x="38" y="28" width="10" height="16" rx="3" fill="#f43f5e" opacity="0.7"/>
+          <circle cx="24" cy="20" r="3" fill="#fff" opacity="0.85"/>
+          <circle cx="32" cy="20" r="3" fill="#fff" opacity="0.85"/>
+          <rect x="20" y="6"  width="16" height="7"  rx="2" fill="#f43f5e" opacity="0.5"/>
+          <rect x="36" y="24" width="14" height="5"  rx="2" fill="#fbbf24" opacity="0.9"/>
+          <rect x="14" y="36" width="8"  height="3"  rx="1" fill="#fbbf24" opacity="0.6"/>
+        </svg></div>
+        <div class="app-name">MILITIA</div>
+        <div class="app-sub">2D Shooter · Jetpack · Bots</div>
       </div>
     </div>
   </div>
@@ -1089,6 +1163,58 @@ body{background:var(--bg);font-family:'DM Sans',sans-serif;color:#fff;overflow:h
   </div>
 </div>
 
+<!-- ══ MILITIA ══ -->
+<div id="militia-screen" class="screen">
+  <button class="g-back" onclick="leaveMilitia()">← Hub</button>
+  <div id="militia-lobby">
+    <div class="ml-title">MILITIA</div>
+    <div class="ml-sub">2D Shooter · Paradox Hub</div>
+    <div id="ml-mode-select" style="display:flex;flex-direction:column;align-items:center;gap:0">
+      <div class="ml-modes">
+        <div class="ml-mc ai" onclick="mlPickAI()">
+          <div class="ml-mc-icon">🤖</div>
+          <div class="ml-mc-title">vs AI Bots</div>
+          <div class="ml-mc-desc">Solo · Fight smart bots</div>
+        </div>
+        <div class="ml-mc online" onclick="mlPickOnline()">
+          <div class="ml-mc-icon">🌐</div>
+          <div class="ml-mc-title">Online</div>
+          <div class="ml-mc-desc">Create or join a room</div>
+        </div>
+      </div>
+      <div class="ml-controls-hint">WASD / ARROWS — Move &amp; Jetpack &nbsp;|&nbsp; MOUSE — Aim &amp; Shoot &nbsp;|&nbsp; 1-4 — Switch Weapon</div>
+    </div>
+    <div class="ml-panel" id="ml-ai-panel">
+      <div class="ml-panel-title">Difficulty</div>
+      <div class="ml-btn-row">
+        <button class="ml-btn" onclick="mlStartAI(3,1)">Easy</button>
+        <button class="ml-btn" onclick="mlStartAI(4,2)">Normal</button>
+        <button class="ml-btn" onclick="mlStartAI(5,3)">Hard</button>
+        <button class="ml-btn" onclick="mlStartAI(6,4)">Insane</button>
+      </div>
+      <div class="ml-back-link" onclick="mlBackMode()">← Back</div>
+    </div>
+    <div class="ml-panel" id="ml-online-panel" style="border-color:rgba(167,139,250,.15)">
+      <div class="ml-panel-title" style="color:#c4b5fd">Online Room</div>
+      <div style="font-family:Orbitron,monospace;font-size:9px;letter-spacing:3px;color:rgba(255,255,255,.25)">Your Room Code</div>
+      <div class="ml-room-code" id="ml-room-code-disp">----</div>
+      <button class="ml-btn" style="border-color:rgba(167,139,250,.4);color:#c4b5fd" onclick="mlCreateRoom()">Create Room</button>
+      <div style="font-family:Orbitron,monospace;font-size:9px;color:rgba(255,255,255,.2);letter-spacing:2px;margin-top:4px">— or join —</div>
+      <div class="ml-onl-row">
+        <input id="ml-join-input" class="ml-onl-input" maxlength="4" placeholder="CODE" oninput="this.value=this.value.toUpperCase()"/>
+        <button class="ml-btn" style="border-color:rgba(167,139,250,.4);color:#c4b5fd" onclick="mlJoinRoom()">Join</button>
+      </div>
+      <button class="ml-btn" onclick="mlStartOnline()" style="border-color:rgba(167,139,250,.5);color:#c4b5fd;margin-top:4px">▶ Start Game</button>
+      <div id="ml-online-status" style="font-family:Orbitron,monospace;font-size:9px;color:rgba(255,255,255,.3);letter-spacing:2px;min-height:16px;text-align:center"></div>
+      <div class="ml-back-link" onclick="mlBackMode()">← Back</div>
+    </div>
+  </div>
+  <div id="militia-game">
+    <canvas id="militia-canvas"></canvas>
+    <button id="ml-back-ingame" onclick="mlBackLobby()">← Lobby</button>
+  </div>
+</div>
+
 <!-- Stubs: ensure inline onclick attrs work before ES module loads -->
 <script>
 (function(){
@@ -1096,7 +1222,9 @@ body{background:var(--bg);font-family:'DM Sans',sans-serif;color:#fff;overflow:h
     'openBlob','openTrivia','leaveBlob','leaveTrivia',
     'openTetris','leaveTetris','open2048','leave2048','restart2048','openChess','leaveChess','chessPickAI','chessStartPass','chessShowOnline','chessCreateRoom','chessJoinRoom','chessStartAI','chessResign','chessPlayAgain',
     'lobbyTab','createRoom','joinRoom','setTab',
-    'sendChat','chatKey','restartGame'];
+    'sendChat','chatKey','restartGame',
+    'openMilitia','leaveMilitia','mlPickAI','mlPickOnline','mlBackMode',
+    'mlStartAI','mlCreateRoom','mlJoinRoom','mlStartOnline','mlBackLobby'];
   fns.forEach(function(fn){
     window[fn]=function(){
       var real=window['__'+fn];
@@ -1107,6 +1235,6 @@ body{background:var(--bg);font-family:'DM Sans',sans-serif;color:#fff;overflow:h
   window.T={show:function(){},render:function(){}};
 })();
 </script>
-<script type="module" src="js/main.js"></script>
+<script type="module" src="main.js"></script>
 </body>
 </html>
