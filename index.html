@@ -483,7 +483,7 @@ body{background:var(--bg);font-family:'DM Sans',sans-serif;color:#fff;overflow:h
 #blob-lobby{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:max(60px,8vh);padding-bottom:24px;overflow-y:auto;background:radial-gradient(ellipse 80% 60% at 50% 50%,#12042e 0%,var(--bg) 70%);z-index:5;}
 #blob-lobby canvas{position:absolute;inset:0;pointer-events:none;}
 .lobby-card{background:rgba(13,13,31,.88);backdrop-filter:blur(30px);border:1px solid rgba(0,245,196,.15);
-  border-radius:28px;padding:28px 36px 28px;width:min(480px,94vw);position:relative;}
+  border-radius:28px;padding:24px 32px 28px;width:min(480px,94vw);position:relative;}
 .lobby-card::before{content:'';position:absolute;inset:-1px;border-radius:28px;
   background:linear-gradient(135deg,rgba(0,245,196,.1),transparent,rgba(124,58,237,.1));
   -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
@@ -492,8 +492,6 @@ body{background:var(--bg);font-family:'DM Sans',sans-serif;color:#fff;overflow:h
 @keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
 .logo-sub2{font-family:'Orbitron',monospace;font-size:10px;letter-spacing:6px;text-transform:uppercase;color:rgba(255,255,255,.28);margin-top:6px;}
 .lobby-tabs{display:flex;gap:0;margin-bottom:20px;background:rgba(255,255,255,.04);border-radius:12px;padding:4px;}
-.ltab{flex:1;padding:9px;text-align:center;font-family:'Orbitron',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.3);border-radius:9px;cursor:none;transition:all .2s;}
-.ltab.on{background:rgba(0,245,196,.12);color:var(--c1);}
 .emoji-picker{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:8px;}
 .ep-btn{font-size:18px;background:rgba(255,255,255,.04);border:2px solid rgba(255,255,255,.07);border-radius:10px;
   width:100%;height:44px;cursor:none;transition:border-color .15s,background .15s,box-shadow .15s;
@@ -531,6 +529,21 @@ body{background:var(--bg);font-family:'DM Sans',sans-serif;color:#fff;overflow:h
   border:1px solid var(--border);border-radius:50px;padding:7px 16px;font-family:'Orbitron',monospace;
   font-size:9px;letter-spacing:2px;color:rgba(255,255,255,.5);cursor:none;transition:all .2s;pointer-events:auto;}
 .back-hub:hover{color:var(--c1);border-color:rgba(0,245,196,.3);}
+/* ── Lobby unified layout ── */
+.lsec{padding:14px 0;border-bottom:1px solid rgba(255,255,255,.05);}
+.lsec:first-child{padding-top:0;}
+.lsec-style{border-bottom:none;padding-bottom:0;}
+.lgen-btn{font-family:'Orbitron',monospace;font-size:9px;font-weight:700;letter-spacing:2px;
+  padding:0 14px;height:44px;border-radius:12px;border:1px solid rgba(0,245,196,.3);
+  background:rgba(0,245,196,.07);color:var(--c1);cursor:none;transition:all .2s;flex-shrink:0;}
+.lgen-btn:hover{background:rgba(0,245,196,.15);border-color:var(--c1);}
+.lstyle-toggle{display:flex;align-items:center;justify-content:space-between;
+  font-family:'Orbitron',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;
+  color:rgba(255,255,255,.3);cursor:none;padding:4px 0;transition:color .2s;}
+.lstyle-toggle:hover{color:rgba(255,255,255,.5);}
+.lstyle-arrow{transition:transform .2s;}
+.lstyle-arrow.open{transform:rotate(180deg);}
+.lstyle-body{padding-top:12px;}
 /* cust section */
 .cust-section{margin-bottom:14px;}
 .speed-slider-wrap{margin-top:8px;}
@@ -749,51 +762,70 @@ body{background:var(--bg);font-family:'DM Sans',sans-serif;color:#fff;overflow:h
       <div style="font-size:11px;color:rgba(255,255,255,.2);margin-top:8px;letter-spacing:2px">By <span style="color:var(--c1);font-weight:700">Sree</span></div>
     </div>
     <div class="lobby-card">
-      <div class="lobby-tabs">
-        <div class="ltab on" id="ltab-profile" onclick="lobbyTab('profile')">Profile</div>
-        <div class="ltab" id="ltab-blobstyle" onclick="lobbyTab('blobstyle')">Bob Style</div>
-        <div class="ltab" id="ltab-room" onclick="lobbyTab('room')">Room</div>
-      </div>
-      <!-- Profile Tab -->
-      <div id="lpanel-profile" style="min-height:320px">
-        <div class="field-group"><label>Your Name</label>
-          <input type="text" id="inp-name" placeholder="Enter your username…" maxlength="20" onkeydown="if(event.key==='Enter')createRoom()"/>
-        </div>
-        <div class="cust-section">
-          <div class="field-group" style="margin-bottom:0"><label>Choose Your Face</label><div class="emoji-picker" id="emoji-pick"></div></div>
 
+      <!-- ── SECTION 1: Identity ── -->
+      <div class="lsec">
+        <div class="field-group">
+          <label>Your Name</label>
+          <input type="text" id="inp-name" placeholder="Enter your username…" maxlength="20"/>
         </div>
-        <div class="cust-section" style="margin-top:14px">
-          <div class="field-group" style="margin-bottom:0">
-            <label>Blob Speed</label>
-            <div class="speed-slider-wrap">
-              <input type="range" class="speed-slider" id="speed-slider" min="1" max="5" step="0.5" value="2.4"
-                oninput="updateSpeedSlider(this.value)"/>
-              <div class="speed-labels"><span>Slow</span><span>Normal</span><span>Fast</span></div>
-              <div class="speed-val" id="speed-val-label">NORMAL</div>
-            </div>
+        <div class="field-group" style="margin-bottom:0">
+          <label>Choose Your Face</label>
+          <div class="emoji-picker" id="emoji-pick"></div>
+        </div>
+      </div>
+
+      <!-- ── SECTION 2: Room ── -->
+      <div class="lsec">
+        <div class="field-group" style="margin-bottom:10px">
+          <label>Room Code <span style="color:rgba(255,255,255,.15);font-size:9px;text-transform:none;letter-spacing:0;font-family:DM Sans,sans-serif">· leave blank to create a new room</span></label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="text" id="inp-room" placeholder="e.g. FIRE42" maxlength="8"
+              style="text-transform:uppercase;flex:1;font-family:Orbitron,monospace;letter-spacing:3px;font-size:15px;font-weight:700"
+              oninput="this.value=this.value.toUpperCase()"
+              onkeydown="if(event.key==='Enter')enterRoom()"/>
+            <button class="lgen-btn" onclick="genAndFill()">NEW</button>
           </div>
         </div>
-        <div class="preview-wrap"><canvas id="blob-preview" width="90" height="90"></canvas></div>
-      </div>
-      <!-- Bob Style Tab -->
-      <div id="lpanel-blobstyle" style="display:none;min-height:320px">
-        <div class="cust-section"><label class="t-label">Blob Color</label><div class="color-row" id="blob-color-row"></div></div>
-        <div class="cust-section"><label class="t-label">Skin Pattern</label><div class="skin-row" id="skin-row"></div></div>
-        <div class="cust-section"><label class="t-label">Name Tag Color</label><div class="tag-row" id="tag-color-row"></div></div>
-        <div class="cust-section"><label class="t-label">Name Badge</label><div class="tag-badge-row" id="tag-badge-row"></div></div>
-        <div class="preview-wrap"><canvas id="blob-preview2" width="90" height="90"></canvas></div>
-      </div>
-      <!-- Room Tab -->
-      <div id="lpanel-room" style="display:none;min-height:320px">
-        <div class="field-group"><label>Room Code <span style="color:rgba(255,255,255,.18);font-size:9px;text-transform:none;letter-spacing:0">(blank = create new)</span></label>
-          <input type="text" id="inp-room" placeholder="e.g. ARENA7" maxlength="8" style="text-transform:uppercase" onkeydown="if(event.key==='Enter')joinRoom()"/>
+        <!-- Room code display after create -->
+        <div id="room-display" style="display:none;text-align:center;padding:10px;background:rgba(0,245,196,.06);border:1px solid rgba(0,245,196,.2);border-radius:12px;margin-top:6px">
+          <div style="font-size:9px;font-family:Orbitron,monospace;letter-spacing:3px;color:rgba(0,245,196,.5);margin-bottom:4px">YOUR ROOM CODE</div>
+          <div id="room-display-code" style="font-family:Orbitron,monospace;font-size:26px;font-weight:900;color:var(--c1);letter-spacing:6px"></div>
+          <div style="font-size:10px;color:rgba(255,255,255,.25);margin-top:4px">Share with friends to play together</div>
         </div>
-        <div class="lobby-lb"><div class="lb-head">🏆 All-Time Global Leaders</div><div id="lobby-lb"></div></div>
       </div>
-      <div class="btn-row" style="margin-top:18px">
-        <button class="btn btn-primary" onclick="createRoom()">Create Room</button>
-        <button class="btn btn-outline" onclick="joinRoom()">Join Room</button>
+
+      <!-- ── SECTION 3: Speed ── -->
+      <div class="lsec" style="padding-bottom:14px">
+        <div class="field-group" style="margin-bottom:0">
+          <label>Blob Speed · <span id="speed-val-label" style="color:var(--c1)">NORMAL</span></label>
+          <input type="range" class="speed-slider" id="speed-slider" min="1" max="5" step="0.5" value="2.4"
+            oninput="updateSpeedSlider(this.value)"/>
+          <div class="speed-labels"><span>Slow</span><span>Normal</span><span>Fast</span><span>Max</span></div>
+        </div>
+      </div>
+
+      <!-- ── SECTION 4: Style (collapsible) ── -->
+      <div class="lsec lsec-style">
+        <div class="lstyle-toggle" onclick="toggleBlobStyle(this)">
+          <span>Bob Style</span>
+          <span class="lstyle-arrow">▼</span>
+        </div>
+        <div class="lstyle-body" style="display:none">
+          <div class="cust-section"><label class="t-label">Color</label><div class="color-row" id="blob-color-row"></div></div>
+          <div class="cust-section"><label class="t-label">Skin</label><div class="skin-row" id="skin-row"></div></div>
+          <div class="cust-section"><label class="t-label">Tag Color</label><div class="tag-row" id="tag-color-row"></div></div>
+          <div class="cust-section"><label class="t-label">Badge</label><div class="tag-badge-row" id="tag-badge-row"></div></div>
+          <div class="preview-wrap"><canvas id="blob-preview" width="80" height="80"></canvas><canvas id="blob-preview2" width="80" height="80" style="display:none"></canvas></div>
+        </div>
+      </div>
+
+      <!-- ── Buttons ── -->
+      <div class="btn-row" style="margin-top:4px">
+        <button class="btn btn-primary" onclick="enterRoom()">▶ Play</button>
+      </div>
+      <div id="lobby-lb-wrap" style="margin-top:18px;padding-top:16px;border-top:1px solid rgba(255,255,255,.05)">
+        <div class="lb-head">🏆 Global Leaders</div><div id="lobby-lb"></div>
       </div>
     </div>
   </div>
@@ -986,7 +1018,7 @@ body{background:var(--bg);font-family:'DM Sans',sans-serif;color:#fff;overflow:h
 <!-- Stubs: ensure inline onclick attrs work before ES module loads -->
 <script>
 (function(){
-  var fns=['authTab','authKey','doSignIn','doSignUp','doSignOut',
+  var fns=['authTab','authKey','doSignIn','doSignUp','doSignOut','enterRoom','genAndFill','toggleBlobStyle',
     'openBlob','openTrivia','leaveBlob','leaveTrivia',
     'openTetris','leaveTetris','open2048','leave2048','restart2048','openChess','leaveChess','chessPickAI','chessStartPass','chessShowOnline','chessCreateRoom','chessJoinRoom','chessStartAI','chessResign','chessPlayAgain',
     'lobbyTab','createRoom','joinRoom','setTab',
@@ -1192,13 +1224,6 @@ document.addEventListener('mousemove',e=>{mouse.x=e.clientX;mouse.y=e.clientY;})
 })();
 
 // ── Lobby Tab / init ──
-function lobbyTab(t){
-  ['profile','blobstyle','room'].forEach(x=>{
-    document.getElementById('ltab-'+x).className='ltab'+(x===t?' on':'');
-    document.getElementById('lpanel-'+x).style.display=x===t?'block':'none';
-  });
-}
-
 const speedLabels={1:'SLOW',1.5:'SLOW',2:'NORMAL',2.4:'NORMAL',2.5:'FAST',3:'FAST',3.5:'FASTER',4:'TURBO',4.5:'TURBO',5:'MAX'};
 function updateSpeedSlider(val){
   val=parseFloat(val);mySpeed=val;
@@ -1210,6 +1235,9 @@ function updateSpeedSlider(val){
 function initBlobLobby(){
   myName=myDisplayName;
   const ni=document.getElementById('inp-name');if(ni)ni.value=myName;
+  // Reset room display
+  const rd=document.getElementById('room-display');if(rd)rd.style.display='none';
+  document.getElementById('inp-room').value='';
   // init speed slider
   const sl=document.getElementById('speed-slider');if(sl){sl.value=mySpeed;updateSpeedSlider(mySpeed);}
 
@@ -1322,19 +1350,34 @@ async function loadBlobLB(){
 
 function genCode(){return Math.random().toString(36).slice(2,8).toUpperCase();}
 
-function createRoom(){
+function enterRoom(){
   const n=document.getElementById('inp-name').value.trim();
   if(!n){flashInp('inp-name');return;}
-  const r=document.getElementById('inp-room').value.trim().toUpperCase()||genCode();
-  document.getElementById('inp-room').value=r;
-  startBlobGame(n,r);
+  let r=document.getElementById('inp-room').value.trim().toUpperCase();
+  if(!r){r=genCode();document.getElementById('inp-room').value=r;}
+  // Show the room code so player can share it
+  document.getElementById('room-display-code').textContent=r;
+  document.getElementById('room-display').style.display='block';
+  // Small delay so player sees code before game starts
+  setTimeout(()=>startBlobGame(n,r),900);
 }
-function joinRoom(){
-  const n=document.getElementById('inp-name').value.trim();if(!n){flashInp('inp-name');return;}
-  const r=document.getElementById('inp-room').value.trim().toUpperCase();if(!r){flashInp('inp-room');return;}
-  startBlobGame(n,r);
+function genAndFill(){
+  const code=genCode();
+  document.getElementById('inp-room').value=code;
+  document.getElementById('room-display-code').textContent=code;
+  document.getElementById('room-display').style.display='block';
 }
-function flashInp(id){const el=document.getElementById(id);el.style.borderColor='rgba(244,63,94,.7)';setTimeout(()=>el.style.borderColor='',1200);}
+function toggleBlobStyle(el){
+  const body=el.nextElementSibling;
+  const open=body.style.display==='none';
+  body.style.display=open?'block':'none';
+  el.querySelector('.lstyle-arrow').classList.toggle('open',open);
+  if(open)updatePreviews();
+}
+function createRoom(){enterRoom();}
+function joinRoom(){enterRoom();}
+function lobbyTab(){}
+function flashInp(id){const el=document.getElementById(id);if(!el)return;el.style.borderColor='rgba(244,63,94,.7)';setTimeout(()=>el.style.borderColor='',1200);}
 
 function startBlobGame(name,room){
   myName=name;myRoom=room;
@@ -1383,7 +1426,7 @@ let blobSeenIds=new Set();
 async function blobSyncStart(){
   fbListen('players',snap=>{
     if(!snap)return;const now=Date.now();lbData=snap;
-    netPlayers=Object.values(snap).filter(p=>p.id!==myId&&(now-p.ts)<12000);
+    netPlayers=Object.values(snap).filter(p=>p.id!==myId&&(now-p.ts)<15000);
     const rc=netPlayers.filter(p=>p.room===myRoom).length+1;
     document.getElementById('h-players').textContent=rc;document.getElementById('room-players').textContent=rc;
     updateBlobLB();
@@ -2064,7 +2107,7 @@ window.__authTab=authTab;window.__authKey=authKey;window.__doSignIn=doSignIn;win
 window.__openBlob=openBlob;window.__openTrivia=openTrivia;window.__leaveBlob=leaveBlob;window.__leaveTrivia=leaveTrivia;
 window.__openTetris=openTetris;window.__leaveTetris=leaveTetris;window.__open2048=open2048;window.__leave2048=leave2048;window.__restart2048=restart2048;
 window.__openChess=openChess;window.__leaveChess=leaveChess;window.__chessPickAI=chessPickAI;window.__chessStartPass=chessStartPass;window.__chessShowOnline=chessShowOnline;window.__chessCreateRoom=chessCreateRoom;window.__chessJoinRoom=chessJoinRoom;window.__chessStartAI=chessStartAI;window.__chessResign=chessResign;window.__chessPlayAgain=chessPlayAgain;
-window.__lobbyTab=lobbyTab;window.__createRoom=createRoom;window.__joinRoom=joinRoom;
+window.__lobbyTab=lobbyTab;window.__createRoom=createRoom;window.__joinRoom=joinRoom;window.__enterRoom=enterRoom;window.__genAndFill=genAndFill;window.__toggleBlobStyle=toggleBlobStyle;
 window.__setTab=setTab;window.__sendChat=sendChat;window.__chatKey=chatKey;window.__restartGame=restartGame;
 window.T=T;
 
