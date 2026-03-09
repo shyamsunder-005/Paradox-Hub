@@ -12,6 +12,8 @@ import { open2048, leave2048, restart2048 } from './g2048.js';
 import { openChess, leaveChess, chessPickAI, chessStartPass, chessShowOnline,
          chessCreateRoom, chessJoinRoom, chessStartAI, chessResign, chessPlayAgain } from './chess.js';
 import { T } from './trivia.js';
+import { openMilitia, leaveMilitia, mlPickAI, mlPickOnline, mlBackMode,
+         mlStartAI, mlCreateRoom, mlJoinRoom, mlStartOnline, mlBackLobby } from './militia.js';
 
 // Wire auth callbacks (doSignUp needs initHub + renderHubBg)
 setAuthCallbacks(initHub, renderHubBg);
@@ -103,5 +105,16 @@ window.__setTab = setTab;
 window.__sendChat = sendChat;
 window.__chatKey = chatKey;
 window.__restartGame = restartGame;
+
+window.__openMilitia   = openMilitia;
+window.__leaveMilitia  = leaveMilitia;
+window.__mlPickAI      = mlPickAI;
+window.__mlPickOnline  = mlPickOnline;
+window.__mlBackMode    = mlBackMode;
+window.__mlStartAI     = mlStartAI;
+window.__mlCreateRoom  = mlCreateRoom;
+window.__mlJoinRoom    = mlJoinRoom;
+window.__mlStartOnline = mlStartOnline;
+window.__mlBackLobby   = mlBackLobby;
 
 window.T = T;
