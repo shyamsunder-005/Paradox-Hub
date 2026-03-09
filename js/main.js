@@ -12,7 +12,7 @@ import { open2048, leave2048, restart2048 } from './g2048.js';
 import { openChess, leaveChess, chessPickAI, chessStartPass, chessShowOnline,
          chessCreateRoom, chessJoinRoom, chessStartAI, chessResign, chessPlayAgain } from './chess.js';
 import { T } from './trivia.js';
-import { openMilitia, leaveMilitia, mlPickAI, mlPickOnline, mlBackMode,
+import { openMilitia, leaveMilitia, mlDismissInstructions, mlPickAI, mlPickOnline, mlBackMode,
          mlStartAI, mlCreateRoom, mlJoinRoom, mlStartOnline, mlBackLobby } from './militia.js';
 
 // Wire auth callbacks (doSignUp needs initHub + renderHubBg)
@@ -108,6 +108,7 @@ window.__restartGame = restartGame;
 
 window.__openMilitia   = openMilitia;
 window.__leaveMilitia  = leaveMilitia;
+window.__mlDismissInstructions = mlDismissInstructions;
 window.__mlPickAI      = mlPickAI;
 window.__mlPickOnline  = mlPickOnline;
 window.__mlBackMode    = mlBackMode;
