@@ -1169,7 +1169,35 @@ body{background:var(--bg);font-family:'DM Sans',sans-serif;color:#fff;overflow:h
   <div id="militia-lobby">
     <div class="ml-title">MILITIA</div>
     <div class="ml-sub">2D Shooter · Paradox Hub</div>
-    <div id="ml-mode-select" style="display:flex;flex-direction:column;align-items:center;gap:0">
+    <div id="ml-instructions" style="display:flex;flex-direction:column;align-items:center;gap:0;width:100%;max-width:560px">
+      <div class="ml-panel" style="border-color:rgba(244,63,94,.2);width:100%;max-width:520px;gap:14px">
+        <div class="ml-panel-title" style="font-size:13px;margin-bottom:2px">⚔️ HOW TO PLAY</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;font-family:'DM Sans',sans-serif;font-size:12px;color:rgba(255,255,255,.65);width:100%">
+          <div><span style="color:#f43f5e;font-family:Orbitron,monospace;font-weight:700;font-size:10px">MOVE</span><br>A / D  or  ← →</div>
+          <div><span style="color:#f43f5e;font-family:Orbitron,monospace;font-weight:700;font-size:10px">JETPACK</span><br>W  or  ↑  (hold to fly)</div>
+          <div><span style="color:#00f5c4;font-family:Orbitron,monospace;font-weight:700;font-size:10px">TURBO BOOST</span><br>SPACE  (2.8× speed burst)</div>
+          <div><span style="color:#fbbf24;font-family:Orbitron,monospace;font-weight:700;font-size:10px">AIM &amp; SHOOT</span><br>Mouse to aim · Click to fire</div>
+          <div><span style="color:#a78bfa;font-family:Orbitron,monospace;font-weight:700;font-size:10px">WEAPONS</span><br>Keys 1 2 3 4 to switch</div>
+          <div><span style="color:#22d3ee;font-family:Orbitron,monospace;font-weight:700;font-size:10px">PICKUPS</span><br>Walk over glowing crates</div>
+        </div>
+        <div style="width:100%;border-top:1px solid rgba(255,255,255,.06);padding-top:10px;display:flex;flex-direction:column;gap:6px">
+          <div style="font-family:Orbitron,monospace;font-size:9px;letter-spacing:2px;color:rgba(255,255,255,.3)">WEAPONS</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+            <span style="font-size:11px">🔫 <b style="color:#fbbf24">Pistol</b> — Infinite ammo, reliable</span>
+            <span style="font-size:11px">⚡ <b style="color:#22d3ee">Rifle</b> — Auto-fire, 30 rounds</span>
+            <span style="font-size:11px">💥 <b style="color:#f97316">Shotgun</b> — 5 pellets, 8 shots</span>
+            <span style="font-size:11px">🚀 <b style="color:#f43f5e">Rocket</b> — Explosive splash, 3 shots</span>
+          </div>
+        </div>
+        <div style="font-family:'DM Sans',sans-serif;font-size:11px;color:rgba(255,255,255,.35);text-align:center;line-height:1.6">
+          Turbo has a fuel bar — burns fast, then cools down for 4s.<br>Jetpack fuel recharges when you land.
+        </div>
+        <button class="ml-btn" onclick="mlDismissInstructions()" style="border-color:rgba(244,63,94,.6);color:#f43f5e;margin-top:4px;font-size:12px;padding:10px 32px">
+          GOT IT — PICK MODE →
+        </button>
+      </div>
+    </div>
+    <div id="ml-mode-select" style="display:none;flex-direction:column;align-items:center;gap:0">
       <div class="ml-modes">
         <div class="ml-mc ai" onclick="mlPickAI()">
           <div class="ml-mc-icon">🤖</div>
@@ -1182,7 +1210,7 @@ body{background:var(--bg);font-family:'DM Sans',sans-serif;color:#fff;overflow:h
           <div class="ml-mc-desc">Create or join a room</div>
         </div>
       </div>
-      <div class="ml-controls-hint">WASD / ARROWS — Move &amp; Jetpack &nbsp;|&nbsp; MOUSE — Aim &amp; Shoot &nbsp;|&nbsp; 1-4 — Switch Weapon</div>
+      <div class="ml-controls-hint">W/↑ Jetpack &nbsp;|&nbsp; SPACE Turbo &nbsp;|&nbsp; A/D Move &nbsp;|&nbsp; Mouse Aim &amp; Shoot &nbsp;|&nbsp; 1-4 Switch Weapon</div>
     </div>
     <div class="ml-panel" id="ml-ai-panel">
       <div class="ml-panel-title">Difficulty</div>
@@ -1223,7 +1251,7 @@ body{background:var(--bg);font-family:'DM Sans',sans-serif;color:#fff;overflow:h
     'openTetris','leaveTetris','open2048','leave2048','restart2048','openChess','leaveChess','chessPickAI','chessStartPass','chessShowOnline','chessCreateRoom','chessJoinRoom','chessStartAI','chessResign','chessPlayAgain',
     'lobbyTab','createRoom','joinRoom','setTab',
     'sendChat','chatKey','restartGame',
-    'openMilitia','leaveMilitia','mlPickAI','mlPickOnline','mlBackMode',
+    'openMilitia','leaveMilitia','mlDismissInstructions','mlPickAI','mlPickOnline','mlBackMode',
     'mlStartAI','mlCreateRoom','mlJoinRoom','mlStartOnline','mlBackLobby'];
   fns.forEach(function(fn){
     window[fn]=function(){
@@ -1235,6 +1263,6 @@ body{background:var(--bg);font-family:'DM Sans',sans-serif;color:#fff;overflow:h
   window.T={show:function(){},render:function(){}};
 })();
 </script>
-<script type="module" src="./js/main.js"></script>
+<script type="module" src="main.js"></script>
 </body>
 </html>
