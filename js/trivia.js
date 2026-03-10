@@ -2,6 +2,25 @@
 import { fbGet, fbSet, fbListen, fbOff, fbPush } from './firebase.js';
 import { state, showScreen, esc, fmt } from './state.js';
 
+// ── Gemini API helper ──
+const GEMINI_KEY = 'AIzaSyDG3F6O3_MX9viBwgXMor3fh7K1wu64o7g'; // ← paste your key here
+async function callGemini(prompt) {
+  const res = await fetch(
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + GEMINI_KEY,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+    }
+  );
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error?.message || 'Gemini error');
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  return text.replace(/```json
+?|```/g, '').trim();
+}
+
+
 // ══════════════════════════════════════════════════
 // ══ TRIVIA APP (Vanilla JS SPA) ══
 // ══════════════════════════════════════════════════
@@ -97,16 +116,7 @@ export const T={
     this.show('loading',{loadText:'Generating your quiz…'});
 
     try{
-      const res=await fetch('/api/quiz',{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({prompt:`Generate exactly ${this.data.num||10} trivia MCQ questions. Category: ${cats.join(', ')}. Difficulty: ${this.data.diff||'medium'}. Return ONLY a raw JSON object (no markdown, no explanation): {"questions":[{"question":"...","options":["A","B","C","D"],"correctAnswer":0,"category":"..."}]}`})
-      });
-      const d=await res.json();
-      if(!res.ok||d.error){
-        const detail=(d.details||[]).join(' | ');
-        throw new Error((d.error||'Request failed')+(detail?' — '+detail:''));
-      }
-      const txt=(d.text||'').replace(/```json\n?|```/g,'').trim();
+      const txt=await callGemini(`Generate exactly ${this.data.num||10} trivia MCQ questions. Category: ${cats.join(', ')}. Difficulty: ${this.data.diff||'medium'}. Return ONLY a raw JSON object (no markdown, no explanation): {"questions":[{"question":"...","options":["A","B","C","D"],"correctAnswer":0,"category":"..."}]}`);
       let parsed;try{parsed=JSON.parse(txt);}catch(e){const m=txt.match(/\{[\s\S]*\}/);parsed=JSON.parse(m?m[0]:txt);}
       this.show('game',{questions:parsed.questions,cur:0,score:0,log:[],answered:false,sel:null,backTo:'home'});
     }catch(e){
@@ -271,13 +281,7 @@ export const T={
     const btn=document.getElementById('t-start-btn');if(btn){btn.disabled=true;btn.textContent='Generating…';}
 
     try{
-      const res=await fetch('/api/quiz',{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({prompt:'Generate 10 fun trivia MCQ questions on mixed topics, medium difficulty. Return ONLY a raw JSON object (no markdown, no explanation): {"questions":[{"question":"...","options":["A","B","C","D"],"correctAnswer":0,"category":"..."}]}'})
-      });
-      const d=await res.json();
-      if(d.error)throw new Error(d.error);
-      const txt2=(d.text||'').replace(/```json\n?|```/g,'').trim();
+      const txt2=await callGemini('Generate 10 fun trivia MCQ questions on mixed topics, medium difficulty. Return ONLY a raw JSON object (no markdown, no explanation): {"questions":[{"question":"...","options":["A","B","C","D"],"correctAnswer":0,"category":"..."}]}');
       let parsed;try{parsed=JSON.parse(txt2);}catch(e){const m=txt2.match(/\{[\s\S]*\}/);parsed=JSON.parse(m?m[0]:txt2);}
       const room=await fbGet('trivia/rooms/'+roomCode);
       await fbSet('trivia/rooms/'+roomCode,{...room,status:'playing',questions:(parsed||{}).questions||[]});
