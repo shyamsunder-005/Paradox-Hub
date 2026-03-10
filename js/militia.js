@@ -5,7 +5,8 @@ import { db, ref, set, onValue, off, fbGet, fbListen, fbOff } from './firebase.j
 // ══ Constants ══
 const GRAVITY      = 0.38;
 const JETPACK_F    = -0.72;
-const MOVE_SPEED   = 2.6;
+const MOVE_SPEED   = 2.8;
+const JUMP_FORCE   = -10.5;
 const WORLD_W      = 2400;
 const WORLD_H      = 800;
 const FPS_TARGET   = 60;
@@ -270,25 +271,29 @@ function updateRespawns(){
 const BOT_NAMES=['Alpha','Bravo','Delta','Ghost','Nova','Viper','Storm','Cipher'];
 const BOT_COLS=['#f43f5e','#f97316','#a855f7','#60a5fa','#fbbf24','#ec4899','#22d3ee','#fb923c'];
 
-// Check if a solid wall is directly ahead (horizontal)
-function botWallAhead(bot, dir){
-  const checkX = dir>0 ? bot.x+bot.w+6 : bot.x-6;
+function botWallAhead(bot,dir){
+  const checkX=dir>0?bot.x+bot.w+6:bot.x-6;
   for(const pl of platforms){
-    if(pl.h>60) continue; // ignore border walls
-    if(checkX>pl.x&&checkX<pl.x+pl.w&&bot.y+bot.h>pl.y+4&&bot.y<pl.y+pl.h) return true;
+    if(pl.h>60)continue;
+    if(checkX>pl.x&&checkX<pl.x+pl.w&&bot.y+bot.h>pl.y+4&&bot.y<pl.y+pl.h)return true;
   }
   return false;
 }
 
-// Separate physics for bots using difficulty-scaled speed
+function initBotAI(bot){
+  bot.bStuckTick=0; bot.bLastX=bot.x; bot.bJumpCooldown=0;
+  bot.bStrafeDir=Math.random()<0.5?1:-1; bot.bStrafeTimer=0;
+  bot.bReactionDelay=Math.floor(Math.random()*20+10);
+  bot.bShootCooldown=0;
+}
+
 function botMove(bot,jet,mx){
   if(bot.dead)return;
   bot.vy+=GRAVITY;
   if(jet&&bot.jetFuel>0){bot.vy+=JETPACK_F;bot.jetFuel=Math.max(0,bot.jetFuel-1.8);}
   else if(bot.onGround)bot.jetFuel=Math.min(bot.jetMax,bot.jetFuel+1.4);
   else bot.jetFuel=Math.min(bot.jetMax,bot.jetFuel+0.35);
-  // Easy=1.4, Normal=1.8, Hard=2.2, Insane=2.5
-  const spd=1.0+mlDiff*0.4;
+  const spd=1.0+mlDiff*0.4; // Easy=1.4, Normal=1.8, Hard=2.2, Insane=2.6
   bot.vx=mx*spd;
   bot.x+=bot.vx; bot.y+=bot.vy;
   bot.x=Math.max(30,Math.min(WORLD_W-30-bot.w,bot.x));
@@ -298,12 +303,9 @@ function botMove(bot,jet,mx){
 
 function updateBot(bot){
   if(bot.dead)return;
-  if(bot.bStuckTick===undefined) initBotAI(bot);
-  if(bot.bJumpCooldown>0) bot.bJumpCooldown--;
+  if(bot.bStuckTick===undefined)initBotAI(bot);
+  if(bot.bJumpCooldown>0)bot.bJumpCooldown--;
 
-  const tgt=player&&!player.dead?player:null;
-
-  // Pick up nearby weapons
   for(const pk of pickups){
     if(pk.active&&overlap(bot.x,bot.y,bot.w,bot.h,pk.x-14,pk.y-14,28,28)){
       bot.weapon=pk.type;
@@ -312,31 +314,24 @@ function updateBot(bot){
     }
   }
 
+  const tgt=player&&!player.dead?player:null;
   if(!tgt){
-    // Patrol: walk & jump over walls
     bot.bMoveTick=(bot.bMoveTick||0)+1;
     const wAhead=botWallAhead(bot,bot.bDir);
-    if(wAhead&&bot.onGround&&bot.bJumpCooldown===0){
-      bot.vy=JUMP_FORCE*0.82; bot.bJumpCooldown=45;
-    }
-    // Reverse after a while or if stuck airborne against wall
-    if(bot.bMoveTick>150||(wAhead&&!bot.onGround&&bot.bMoveTick>20)){
-      bot.bDir*=-1; bot.bMoveTick=0;
-    }
+    if(wAhead&&bot.onGround&&bot.bJumpCooldown===0){bot.vy=JUMP_FORCE*0.82;bot.bJumpCooldown=45;}
+    if(bot.bMoveTick>150||(wAhead&&!bot.onGround&&bot.bMoveTick>20)){bot.bDir*=-1;bot.bMoveTick=0;}
     botMove(bot,false,bot.bDir);
     return;
   }
 
   const dx=tgt.x-bot.x, dy=tgt.y-bot.y, dist=Math.hypot(dx,dy);
   const inaccuracy=Math.max(10,(5-mlDiff)*45);
-  // Re-aim every 8 ticks so bots don't lock perfectly
   if(mlTick%8===0){
     bot.bAimX=tgt.x+tgt.w/2+(Math.random()-.5)*inaccuracy;
     bot.bAimY=tgt.y+tgt.h/2+(Math.random()-.5)*inaccuracy;
   }
   bot.facingRight=dx>0;
 
-  // ── Stuck check every 28 ticks ──
   bot.bStuckTick++;
   if(bot.bStuckTick%28===0){
     if(Math.abs(bot.x-bot.bLastX)<5&&bot.onGround&&bot.bJumpCooldown===0){
@@ -347,88 +342,43 @@ function updateBot(bot){
 
   let mx=0, jet=false;
   const wantDir=dx>0?1:-1;
-  const lowHp=bot.hp<30;
-  const veryClose=dist<110;
-  const inRange=dist<400;
+  const lowHp=bot.hp<30, veryClose=dist<110, inRange=dist<400;
   const hasRocket=bot.weapon==='rocket'&&bot.ammo.rocket>0;
 
   if(lowHp&&dist<320){
-    // RETREAT
-    bot.bState='retreat';
-    mx=-wantDir;
-    if(botWallAhead(bot,mx)&&bot.onGround&&bot.bJumpCooldown===0){
-      bot.vy=JUMP_FORCE*0.82; bot.bJumpCooldown=40;
-    }
-    if(bot.jetFuel>25&&dy<-80) jet=true;
-    if(bot.bShootCooldown<=0&&dist<400){
-      shoot(bot,bot.bAimX,bot.bAimY);
-      bot.bShootCooldown=WEAPONS[bot.weapon].fireRate+8;
-    }
-
+    bot.bState='retreat'; mx=-wantDir;
+    if(botWallAhead(bot,mx)&&bot.onGround&&bot.bJumpCooldown===0){bot.vy=JUMP_FORCE*0.82;bot.bJumpCooldown=40;}
+    if(bot.jetFuel>25&&dy<-80)jet=true;
+    if(bot.bShootCooldown<=0&&dist<400){shoot(bot,bot.bAimX,bot.bAimY);bot.bShootCooldown=WEAPONS[bot.weapon].fireRate+8;}
   } else if(veryClose&&!hasRocket){
-    // STRAFE — dodge sideways
     bot.bState='strafe';
     bot.bStrafeTimer--;
-    if(bot.bStrafeTimer<=0){
-      bot.bStrafeDir*=-1;
-      bot.bStrafeTimer=32+Math.floor(Math.random()*32);
-    }
+    if(bot.bStrafeTimer<=0){bot.bStrafeDir*=-1;bot.bStrafeTimer=32+Math.floor(Math.random()*32);}
     mx=bot.bStrafeDir;
-    if(botWallAhead(bot,mx)&&bot.onGround&&bot.bJumpCooldown===0){
-      bot.vy=JUMP_FORCE*0.75; bot.bJumpCooldown=40; mx=-mx; bot.bStrafeDir*=-1;
-    }
-    if(bot.onGround&&bot.bJumpCooldown===0&&Math.random()<0.022){
-      bot.vy=JUMP_FORCE*0.72; bot.bJumpCooldown=50;
-    }
-    if(bot.bShootCooldown<=0){
-      shoot(bot,bot.bAimX,bot.bAimY);
-      bot.bShootCooldown=WEAPONS[bot.weapon].fireRate;
-    }
-
+    if(botWallAhead(bot,mx)&&bot.onGround&&bot.bJumpCooldown===0){bot.vy=JUMP_FORCE*0.75;bot.bJumpCooldown=40;mx=-mx;bot.bStrafeDir*=-1;}
+    if(bot.onGround&&bot.bJumpCooldown===0&&Math.random()<0.022){bot.vy=JUMP_FORCE*0.72;bot.bJumpCooldown=50;}
+    if(bot.bShootCooldown<=0){shoot(bot,bot.bAimX,bot.bAimY);bot.bShootCooldown=WEAPONS[bot.weapon].fireRate;}
   } else if(inRange){
-    // ATTACK
     bot.bState='attack';
-    if(Math.abs(dx)>35) mx=wantDir;
-    // Jump over wall in path
-    if(mx!==0&&botWallAhead(bot,mx)&&bot.onGround&&bot.bJumpCooldown===0){
-      bot.vy=JUMP_FORCE*0.92; bot.bJumpCooldown=28;
-    }
-    // Target is higher — jump toward them
-    if(dy<-55&&bot.onGround&&bot.bJumpCooldown===0){
-      bot.vy=JUMP_FORCE; bot.bJumpCooldown=26;
-    }
-    // Large height gap — jetpack
-    if(dy<-190&&!bot.onGround&&bot.jetFuel>20) jet=true;
-    // Shoot with reaction delay
+    if(Math.abs(dx)>35)mx=wantDir;
+    if(mx!==0&&botWallAhead(bot,mx)&&bot.onGround&&bot.bJumpCooldown===0){bot.vy=JUMP_FORCE*0.92;bot.bJumpCooldown=28;}
+    if(dy<-55&&bot.onGround&&bot.bJumpCooldown===0){bot.vy=JUMP_FORCE;bot.bJumpCooldown=26;}
+    if(dy<-190&&!bot.onGround&&bot.jetFuel>20)jet=true;
     if(dist<440&&bot.bShootCooldown<=0&&mlTick%bot.bReactionDelay===0){
-      if(!(bot.weapon==='rocket'&&dist<130)){
-        shoot(bot,bot.bAimX,bot.bAimY);
-        bot.bShootCooldown=Math.max(3,WEAPONS[bot.weapon].fireRate-(mlDiff*2));
-      }
+      if(!(bot.weapon==='rocket'&&dist<130)){shoot(bot,bot.bAimX,bot.bAimY);bot.bShootCooldown=Math.max(3,WEAPONS[bot.weapon].fireRate-(mlDiff*2));}
     }
-    if(bot.weapon==='rifle'&&dist<360&&bot.ammo.rifle>0) shoot(bot,bot.bAimX,bot.bAimY);
-
+    if(bot.weapon==='rifle'&&dist<360&&bot.ammo.rifle>0)shoot(bot,bot.bAimX,bot.bAimY);
   } else {
-    // CHASE
-    bot.bState='chase';
-    mx=wantDir;
-    if(botWallAhead(bot,mx)&&bot.onGround&&bot.bJumpCooldown===0){
-      bot.vy=JUMP_FORCE; bot.bJumpCooldown=26;
-    }
-    if(dy<-75&&bot.onGround&&bot.bJumpCooldown===0){
-      bot.vy=JUMP_FORCE; bot.bJumpCooldown=26;
-    }
-    if(dy<-190&&bot.jetFuel>30) jet=true;
-    if(dist<520&&bot.bShootCooldown<=0&&mlTick%22===0){
-      shoot(bot,bot.bAimX,bot.bAimY);
-      bot.bShootCooldown=WEAPONS[bot.weapon].fireRate+12;
-    }
+    bot.bState='chase'; mx=wantDir;
+    if(botWallAhead(bot,mx)&&bot.onGround&&bot.bJumpCooldown===0){bot.vy=JUMP_FORCE;bot.bJumpCooldown=26;}
+    if(dy<-75&&bot.onGround&&bot.bJumpCooldown===0){bot.vy=JUMP_FORCE;bot.bJumpCooldown=26;}
+    if(dy<-190&&bot.jetFuel>30)jet=true;
+    if(dist<520&&bot.bShootCooldown<=0&&mlTick%22===0){shoot(bot,bot.bAimX,bot.bAimY);bot.bShootCooldown=WEAPONS[bot.weapon].fireRate+12;}
   }
 
-  if(bot.bShootCooldown>0) bot.bShootCooldown--;
+  if(bot.bShootCooldown>0)bot.bShootCooldown--;
   botMove(bot,jet,mx);
 }
-
 // ══ Camera ══
 function updateCam(cw,ch){
   if(!player)return;
@@ -904,7 +854,7 @@ function startGame(mode,botCount,difficulty,room){
 
 // ══ UI State ══
 function showMlPanel(id){
-  ['ml-mode-select','ml-ai-panel','ml-online-panel'].forEach(x=>{
+  ['ml-instructions','ml-mode-select','ml-ai-panel','ml-online-panel'].forEach(x=>{
     const el=document.getElementById(x);
     if(el)el.style.display=x===id?'flex':'none';
   });
@@ -915,7 +865,9 @@ export function openMilitia(){
   showScreen('militia');
   document.getElementById('militia-lobby').style.display='flex';
   document.getElementById('militia-game').style.display='none';
-  showMlPanel('ml-mode-select');
+  const seen=sessionStorage.getItem('ml_seen');
+  showMlPanel(seen?'ml-mode-select':'ml-instructions');
+  sessionStorage.setItem('ml_seen','1');
 }
 
 export function leaveMilitia(){
