@@ -3,7 +3,7 @@ import { fbGet, fbSet, fbListen, fbOff, fbPush } from './firebase.js';
 import { state, showScreen, esc, fmt } from './state.js';
 
 // ── Gemini API helper ──
-const GEMINI_KEY = 'AIzaSyDG3F6O3_MX9viBwgXMor3fh7K1wu64o7g'; // ← paste your key here
+const GEMINI_KEY = 'AIzaSyDG3F6O3_MX9viBwgXMor3fh7K1wu64o7g';
 async function callGemini(prompt) {
   const res = await fetch(
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + GEMINI_KEY,
