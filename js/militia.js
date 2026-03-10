@@ -5,7 +5,7 @@ import { db, ref, set, onValue, off, fbGet, fbListen, fbOff } from './firebase.j
 // ══ Constants ══
 const GRAVITY      = 0.38;
 const JETPACK_F    = -0.72;
-const MOVE_SPEED   = 3.6;
+const MOVE_SPEED   = 2.8;
 const JUMP_FORCE   = -10.5;
 const WORLD_W      = 2400;
 const WORLD_H      = 800;
