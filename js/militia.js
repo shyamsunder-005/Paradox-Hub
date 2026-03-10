@@ -937,6 +937,7 @@ export function mlBackLobby(){
   showMlPanel('ml-mode-select');
 }
 
+export function mlDismissInstructions(){showMlPanel('ml-mode-select');}
 export function mlPickAI(){showMlPanel('ml-ai-panel');}
 export function mlPickOnline(){showMlPanel('ml-online-panel');}
 export function mlBackMode(){showMlPanel('ml-mode-select');}
