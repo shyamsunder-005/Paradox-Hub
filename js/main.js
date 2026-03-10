@@ -6,14 +6,14 @@ import { hubLbTab, sendFriendReq, acceptFriendReq, declineFriendReq,
          initHub, renderHubBg } from './hub.js';
 import { openBlob, leaveBlob, enterRoom, genAndFill, toggleBlobStyle,
          setTab, sendChat, chatKey, restartGame, lobbyTab, createRoom, joinRoom } from './blob.js';
-import { openTrivia, leaveTrivia } from './trivia.js';
+import { openTrivia, leaveTrivia, T } from './trivia.js';
 import { openTetris, leaveTetris } from './tetris.js';
 import { open2048, leave2048, restart2048 } from './g2048.js';
 import { openChess, leaveChess, chessPickAI, chessStartPass, chessShowOnline,
          chessCreateRoom, chessJoinRoom, chessStartAI, chessResign, chessPlayAgain } from './chess.js';
-import { T } from './trivia.js';
-import { openMilitia, leaveMilitia, mlDismissInstructions, mlPickAI, mlPickOnline, mlBackMode,
-         mlStartAI, mlCreateRoom, mlJoinRoom, mlStartOnline, mlBackLobby } from './militia.js';
+import { openMilitia, leaveMilitia, mlBackLobby, mlDismissInstructions,
+         mlPickAI, mlPickOnline, mlBackMode, mlStartAI,
+         mlCreateRoom, mlJoinRoom, mlStartOnline } from './militia.js';
 
 // Wire auth callbacks (doSignUp needs initHub + renderHubBg)
 setAuthCallbacks(initHub, renderHubBg);
@@ -24,10 +24,8 @@ onAuthStateChanged(auth, user => {
   if(user){
     state.myId = 'u_' + user.uid;
     state.myDisplayName = user.displayName || user.email.split('@')[0];
-    // Pre-fill blob lobby name
     const ni = document.getElementById('inp-name');
     if(ni && !ni.value) ni.value = state.myDisplayName;
-    // Hub user chip
     document.getElementById('hub-uname').textContent = state.myDisplayName;
     document.getElementById('hub-av').textContent = state.myDisplayName[0].toUpperCase();
     showScreen('hub');
@@ -90,6 +88,18 @@ window.__chessStartAI = chessStartAI;
 window.__chessResign = chessResign;
 window.__chessPlayAgain = chessPlayAgain;
 
+window.__openMilitia = openMilitia;
+window.__leaveMilitia = leaveMilitia;
+window.__mlBackLobby = mlBackLobby;
+window.__mlDismissInstructions = mlDismissInstructions;
+window.__mlPickAI = mlPickAI;
+window.__mlPickOnline = mlPickOnline;
+window.__mlBackMode = mlBackMode;
+window.__mlStartAI = mlStartAI;
+window.__mlCreateRoom = mlCreateRoom;
+window.__mlJoinRoom = mlJoinRoom;
+window.__mlStartOnline = mlStartOnline;
+
 window.__hubLbTab = hubLbTab;
 window.__sendFriendReq = sendFriendReq;
 window.__acceptFriendReq = acceptFriendReq;
@@ -106,16 +116,5 @@ window.__sendChat = sendChat;
 window.__chatKey = chatKey;
 window.__restartGame = restartGame;
 
-window.__openMilitia   = openMilitia;
-window.__leaveMilitia  = leaveMilitia;
-window.__mlDismissInstructions = mlDismissInstructions;
-window.__mlPickAI      = mlPickAI;
-window.__mlPickOnline  = mlPickOnline;
-window.__mlBackMode    = mlBackMode;
-window.__mlStartAI     = mlStartAI;
-window.__mlCreateRoom  = mlCreateRoom;
-window.__mlJoinRoom    = mlJoinRoom;
-window.__mlStartOnline = mlStartOnline;
-window.__mlBackLobby   = mlBackLobby;
-
 window.T = T;
+
