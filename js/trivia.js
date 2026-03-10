@@ -16,8 +16,7 @@ async function callGemini(prompt) {
   const data = await res.json();
   if (!res.ok) throw new Error(data.error?.message || 'Gemini error');
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  return text.replace(/```json
-?|```/g, '').trim();
+  return text.replace(/```json\n?|```/g, '').trim();
 }
 
 
