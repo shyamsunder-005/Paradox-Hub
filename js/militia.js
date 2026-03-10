@@ -5,10 +5,7 @@ import { db, ref, set, onValue, off, fbGet, fbListen, fbOff } from './firebase.j
 // ══ Constants ══
 const GRAVITY      = 0.38;
 const JETPACK_F    = -0.72;
-const MOVE_SPEED   = 2.1;
-const TURBO_MULT   = 2.8;   // speed multiplier on Space
-const TURBO_DRAIN  = 1.6;   // fuel cost per turbo frame
-const TURBO_COOL   = 240;   // cooldown frames after turbo empties (~4s at 60fps)
+const MOVE_SPEED   = 2.6;
 const WORLD_W      = 2400;
 const WORLD_H      = 800;
 const FPS_TARGET   = 60;
@@ -23,7 +20,6 @@ const WEAPONS = {
 
 // ══ State ══
 let mlActive=false, mlRAF=null, mlTick=0, mlMode=null, mlRoom=null;
-let turboFuel=100, turboMax=100, turboCoolTick=0, turboOn=false;
 let cam={x:0,y:0}, player=null, bots=[], bullets=[], pickups=[], particles=[];
 let platforms=[], kills=0, deaths=0;
 const keys={};
@@ -325,28 +321,10 @@ function updateCam(cw,ch){
 function handleInput(){
   if(!player||player.dead)return;
   const mx=(keys['ArrowRight']||keys['d']||keys['D']?1:0)-(keys['ArrowLeft']||keys['a']||keys['A']?1:0);
-  // Jetpack: W or Up arrow only
-  const jet=!!(keys['ArrowUp']||keys['w']||keys['W']);
+  const jet=!!(keys['ArrowUp']||keys['w']||keys['W']||keys[' ']);
   const wmx=mouse.x+cam.x, wmy=mouse.y+cam.y;
   player.facingRight=wmx>player.x+player.w/2;
-
-  // ── Turbo (Space) ──
-  const wantTurbo=!!(keys[' ']);
-  const canTurbo=turboCoolTick===0&&turboFuel>0;
-  turboOn=wantTurbo&&canTurbo&&mx!==0;
-  if(turboOn){
-    turboFuel=Math.max(0,turboFuel-TURBO_DRAIN);
-    if(turboFuel===0)turboCoolTick=TURBO_COOL;
-    // eject color trail particle
-    if(mlTick%3===0)spawnParts(player.x+player.w/2,player.y+player.h,'#00f5c4',2);
-  } else {
-    if(turboCoolTick>0){turboCoolTick--;}
-    else{turboFuel=Math.min(turboMax,turboFuel+0.55);}
-  }
-
-  const speed=turboOn?TURBO_MULT:1;
-  updatePhysics(player,jet,mx*speed);
-
+  updatePhysics(player,jet,mx);
   const w=WEAPONS[player.weapon];
   if(mouse.down&&(w.auto||mlTick-player.fireTick>=w.fireRate))shoot(player,wmx,wmy);
   if(keys['1'])player.weapon='pistol';
@@ -588,21 +566,6 @@ function drawHUD(ctx,cw,ch){
   ctx.fillRect(52,ch-24,110*(player.jetFuel/player.jetMax),7);
   ctx.shadowBlur=0;
 
-  // Turbo bar
-  ctx.textAlign='left'; ctx.fillStyle='rgba(255,255,255,.3)'; ctx.font='7px Orbitron,monospace';
-  ctx.fillText('TURBO',170,ch-18);
-  ctx.fillStyle='rgba(0,0,0,.5)';
-  ctx.fillRect(210,ch-24,90,7);
-  const turboPct=turboCoolTick>0?0:turboFuel/turboMax;
-  const turboCol=turboCoolTick>0?'#475569':turboOn?'#00f5c4':'#7c3aed';
-  ctx.fillStyle=turboCol; ctx.shadowColor=turboCol; ctx.shadowBlur=turboOn?8:3;
-  ctx.fillRect(210,ch-24,90*turboPct,7);
-  ctx.shadowBlur=0;
-  if(turboCoolTick>0){
-    ctx.fillStyle='rgba(255,255,255,.25)';ctx.font='6px Orbitron,monospace';ctx.textAlign='left';
-    ctx.fillText('COOL',210,ch-27);
-  }
-
   // Weapon slots
   const slotW=46,slotH=46,startX=cw/2-((slotW+4)*4)/2;
   Object.entries(WEAPONS).forEach(([wk,wv],i)=>{
@@ -793,7 +756,6 @@ function setupInput(){
 function startGame(mode,botCount,difficulty,room){
   mlMode=mode;mlRoom=room||null;mlDiff=difficulty;
   mlTick=0;kills=0;deaths=0;bullets=[];particles=[];onlinePlayers={};
-  turboFuel=turboMax;turboCoolTick=0;turboOn=false;
   buildMap();spawnPickups();
 
   player=makePlayer(state.myId||'local','You','#00f5c4');
@@ -821,7 +783,7 @@ function startGame(mode,botCount,difficulty,room){
 
 // ══ UI State ══
 function showMlPanel(id){
-  ['ml-instructions','ml-mode-select','ml-ai-panel','ml-online-panel'].forEach(x=>{
+  ['ml-mode-select','ml-ai-panel','ml-online-panel'].forEach(x=>{
     const el=document.getElementById(x);
     if(el)el.style.display=x===id?'flex':'none';
   });
@@ -832,7 +794,7 @@ export function openMilitia(){
   showScreen('militia');
   document.getElementById('militia-lobby').style.display='flex';
   document.getElementById('militia-game').style.display='none';
-  showMlPanel('ml-instructions');  // show instructions first
+  showMlPanel('ml-mode-select');
 }
 
 export function leaveMilitia(){
