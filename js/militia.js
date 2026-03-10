@@ -5,7 +5,8 @@ import { db, ref, set, onValue, off, fbGet, fbListen, fbOff } from './firebase.j
 // ══ Constants ══
 const GRAVITY      = 0.38;
 const JETPACK_F    = -0.72;
-const MOVE_SPEED   = 2.6;
+const MOVE_SPEED   = 3.6;
+const JUMP_FORCE   = -10.5;
 const WORLD_W      = 2400;
 const WORLD_H      = 800;
 const FPS_TARGET   = 60;
@@ -270,41 +271,147 @@ function updateRespawns(){
 const BOT_NAMES=['Alpha','Bravo','Delta','Ghost','Nova','Viper','Storm','Cipher'];
 const BOT_COLS=['#f43f5e','#f97316','#a855f7','#60a5fa','#fbbf24','#ec4899','#22d3ee','#fb923c'];
 
+// ── Smart Bot AI ──
+// Each bot has extended state: bState, bStuckTick, bLastX, bJumpCooldown, bStrafeDir, bStrafeTimer
+function initBotAI(bot){
+  bot.bStuckTick=0; bot.bLastX=bot.x; bot.bJumpCooldown=0;
+  bot.bStrafeDir=Math.random()<0.5?1:-1; bot.bStrafeTimer=0;
+  bot.bReactionDelay=Math.floor(Math.random()*20+10); // frames before reacting
+  bot.bShootCooldown=0;
+}
+
 function updateBot(bot){
   if(bot.dead)return;
+  if(!bot.bStuckTick&&bot.bStuckTick!==0)initBotAI(bot);
+
   const tgt=player&&!player.dead?player:null;
+
+  // Pick up nearby weapons
+  for(const pk of pickups){
+    if(pk.active&&overlap(bot.x,bot.y,bot.w,bot.h,pk.x-14,pk.y-14,28,28)){
+      bot.weapon=pk.type;
+      bot.ammo[pk.type]=WEAPONS[pk.type].ammo===Infinity?Infinity:WEAPONS[pk.type].ammo;
+      pk.active=false; pk.respawnAt=mlTick+600;
+    }
+  }
+
   if(!tgt){
-    bot.bMoveTick++;
-    if(bot.bMoveTick>90){bot.bDir*=-1;bot.bMoveTick=0;}
+    // Patrol: walk back and forth, jump on platforms
+    bot.bMoveTick=(bot.bMoveTick||0)+1;
+    if(bot.bMoveTick>120+(bot.id.charCodeAt(4)||0)*10){bot.bDir*=-1;bot.bMoveTick=0;}
+    // Jump over walls
+    if(bot.onGround&&bot.bMoveTick%40===0&&Math.random()<0.3)bot.vy=JUMP_FORCE;
     updatePhysics(bot,false,bot.bDir);
     return;
   }
+
   const dx=tgt.x-bot.x, dy=tgt.y-bot.y, dist=Math.hypot(dx,dy);
-  const inaccuracy=(5-mlDiff)*55;
+  const inaccuracy=Math.max(8,(5-mlDiff)*40);
   bot.bAimX=tgt.x+tgt.w/2+(Math.random()-.5)*inaccuracy;
   bot.bAimY=tgt.y+tgt.h/2+(Math.random()-.5)*inaccuracy;
   bot.facingRight=dx>0;
+
   let mx=0, jet=false;
-  if(dist<500){
-    mx=dx>20?1:dx<-20?-1:0;
-    if(dy<-90&&bot.jetFuel>25)jet=true;
-    if(bot.onGround&&dy<-70)bot.vy=-9;
-    if(mlTick%Math.max(4,14-mlDiff*2)===0)shoot(bot,bot.bAimX,bot.bAimY);
-    // Pick up weapons (simple: switch if on pickup)
-    for(const pk of pickups){
-      if(pk.active&&overlap(bot.x,bot.y,bot.w,bot.h,pk.x-14,pk.y-14,28,28)){
-        bot.weapon=pk.type; bot.ammo[pk.type]=WEAPONS[pk.type].ammo===Infinity?Infinity:WEAPONS[pk.type].ammo;
-        pk.active=false; pk.respawnAt=mlTick+600;
+
+  // ── Stuck detection: if not moved in 30 ticks, jump ──
+  bot.bStuckTick++;
+  if(bot.bStuckTick%30===0){
+    const moved=Math.abs(bot.x-bot.bLastX);
+    if(moved<5&&!bot.dead){
+      // Stuck — jump and reverse or use jetpack
+      if(bot.onGround)bot.vy=JUMP_FORCE;
+      else jet=true;
+      bot.bDir*=-1;
+    }
+    bot.bLastX=bot.x;
+  }
+  if(bot.bJumpCooldown>0)bot.bJumpCooldown--;
+
+  // ── Combat state machine ──
+  const lowHp=bot.hp<30;
+  const veryClose=dist<120;
+  const inRange=dist<420;
+  const hasRocket=bot.weapon==='rocket'&&bot.ammo.rocket>0;
+
+  if(lowHp&&dist<350){
+    // RETREAT: run away + use jetpack to escape
+    bot.bState='retreat';
+    mx=dx>0?-1:1; // run opposite direction
+    if(bot.jetFuel>20)jet=true;
+    // Still shoot while retreating
+    if(bot.bShootCooldown<=0&&dist<500){
+      shoot(bot,bot.bAimX,bot.bAimY);
+      bot.bShootCooldown=WEAPONS[bot.weapon].fireRate+5;
+    }
+  } else if(veryClose&&!hasRocket){
+    // TOO CLOSE: strafe sideways to dodge + shoot rapidly
+    bot.bState='strafe';
+    bot.bStrafeTimer--;
+    if(bot.bStrafeTimer<=0){
+      bot.bStrafeDir*=-1;
+      bot.bStrafeTimer=30+Math.floor(Math.random()*40);
+    }
+    mx=bot.bStrafeDir;
+    // Jump to dodge
+    if(bot.onGround&&bot.bJumpCooldown===0&&Math.random()<0.04){
+      bot.vy=JUMP_FORCE*0.85;
+      bot.bJumpCooldown=45;
+    }
+    if(bot.bShootCooldown<=0){
+      shoot(bot,bot.bAimX,bot.bAimY);
+      bot.bShootCooldown=WEAPONS[bot.weapon].fireRate;
+    }
+  } else if(inRange){
+    // ATTACK: move toward target intelligently
+    bot.bState='attack';
+    // Horizontal movement toward target
+    if(Math.abs(dx)>30)mx=dx>0?1:-1;
+
+    // ── Vertical / platform navigation ──
+    if(dy<-60){
+      // Target is ABOVE — try to jump up to them
+      if(bot.onGround&&bot.bJumpCooldown===0){
+        bot.vy=JUMP_FORCE;
+        bot.bJumpCooldown=30;
+      } else if(!bot.onGround&&bot.jetFuel>15&&dy<-150){
+        jet=true; // use jetpack for big height differences
+      }
+    } else if(dy>80&&!bot.onGround){
+      // Target is below and we're airborne — fall faster, don't jetpack
+      jet=false;
+    }
+
+    // ── Shoot with reaction delay ──
+    if(dist<450&&bot.bShootCooldown<=0&&mlTick%bot.bReactionDelay===0){
+      // Rockets: don't fire if too close (splash damage)
+      if(!(bot.weapon==='rocket'&&dist<120)){
+        shoot(bot,bot.bAimX,bot.bAimY);
+        // Vary shoot cooldown by difficulty
+        bot.bShootCooldown=Math.max(2,WEAPONS[bot.weapon].fireRate-(mlDiff*3));
       }
     }
-  }else{
-    bot.bMoveTick++;
-    if(bot.bMoveTick>90){bot.bDir*=-1;bot.bMoveTick=0;}
+    // Auto-fire for rifle
+    if(bot.weapon==='rifle'&&dist<380&&bot.ammo.rifle>0){
+      shoot(bot,bot.bAimX,bot.bAimY);
+    }
+  } else {
+    // CHASE: pursue at full speed
+    bot.bState='chase';
     mx=dx>0?1:-1;
-    if(bot.jetFuel>50)jet=Math.random()<0.02;
+    // Navigate platforms while chasing
+    if(dy<-80&&bot.onGround&&bot.bJumpCooldown===0){
+      bot.vy=JUMP_FORCE;
+      bot.bJumpCooldown=25;
+    }
+    if(dy<-200&&bot.jetFuel>30)jet=true;
+    // Take potshots while chasing
+    if(dist<550&&bot.bShootCooldown<=0&&mlTick%20===0){
+      shoot(bot,bot.bAimX,bot.bAimY);
+      bot.bShootCooldown=WEAPONS[bot.weapon].fireRate+10;
+    }
   }
-  // Retreat if low HP
-  if(bot.hp<25){mx=-mx;jet=bot.jetFuel>40;}
+
+  if(bot.bShootCooldown>0)bot.bShootCooldown--;
   updatePhysics(bot,jet,mx);
 }
 
@@ -318,19 +425,30 @@ function updateCam(cw,ch){
 }
 
 // ══ Input ══
+let playerJumpPressed=false;
 function handleInput(){
   if(!player||player.dead)return;
   const mx=(keys['ArrowRight']||keys['d']||keys['D']?1:0)-(keys['ArrowLeft']||keys['a']||keys['A']?1:0);
-  const jet=!!(keys['ArrowUp']||keys['w']||keys['W']||keys[' ']);
+  const wantJump=!!(keys['ArrowUp']||keys['w']||keys['W']);
+  const wantJet=!!(keys[' ']); // Space = jetpack only
   const wmx=mouse.x+cam.x, wmy=mouse.y+cam.y;
   player.facingRight=wmx>player.x+player.w/2;
-  updatePhysics(player,jet,mx);
+
+  // ── Jump (W/Up): snappy ground jump ──
+  if(wantJump&&!playerJumpPressed&&player.onGround){
+    player.vy=JUMP_FORCE;
+    playerJumpPressed=true;
+  }
+  if(!wantJump)playerJumpPressed=false;
+
+  updatePhysics(player,wantJet,mx);
   const w=WEAPONS[player.weapon];
   if(mouse.down&&(w.auto||mlTick-player.fireTick>=w.fireRate))shoot(player,wmx,wmy);
+  // Switch weapons
   if(keys['1'])player.weapon='pistol';
-  if(keys['2']&&player.ammo.rifle>0)player.weapon='rifle';
-  if(keys['3']&&player.ammo.shotgun>0)player.weapon='shotgun';
-  if(keys['4']&&player.ammo.rocket>0)player.weapon='rocket';
+  if(keys['2'])player.weapon=player.ammo.rifle>0?'rifle':'pistol';
+  if(keys['3'])player.weapon=player.ammo.shotgun>0?'shotgun':'pistol';
+  if(keys['4'])player.weapon=player.ammo.rocket>0?'rocket':'pistol';
 }
 
 // ══ Online Sync (Firebase) ══
@@ -567,23 +685,39 @@ function drawHUD(ctx,cw,ch){
   ctx.shadowBlur=0;
 
   // Weapon slots
-  const slotW=46,slotH=46,startX=cw/2-((slotW+4)*4)/2;
+  const slotW=50,slotH=50,startX=cw/2-((slotW+6)*4)/2;
   Object.entries(WEAPONS).forEach(([wk,wv],i)=>{
-    const sx=startX+i*(slotW+4),sy=ch-slotH-4;
+    const sx=startX+i*(slotW+6),sy=ch-slotH-6;
     const active=player.weapon===wk;
-    const hasA=player.ammo[wk]===Infinity||player.ammo[wk]>0;
-    ctx.globalAlpha=hasA?1:.3;
-    ctx.fillStyle=active?wv.color+'22':'rgba(255,255,255,.04)';
-    ctx.strokeStyle=active?wv.color+'bb':'rgba(255,255,255,.12)';
-    ctx.lineWidth=active?1.5:1;
-    ctx.beginPath();ctx.roundRect(sx,sy,slotW,slotH,6);ctx.fill();ctx.stroke();
-    ctx.font='20px serif';ctx.textAlign='center';ctx.fillStyle='#fff';ctx.shadowBlur=0;
-    ctx.fillText(wv.emoji,sx+slotW/2,sy+slotH/2+6);
-    ctx.font='7px Orbitron,monospace';
+    const ammoLeft=player.ammo[wk];
+    const hasA=ammoLeft===Infinity||ammoLeft>0;
+    ctx.globalAlpha=hasA?1:.25;
+    // Active glow
+    if(active){ctx.shadowColor=wv.color;ctx.shadowBlur=12;}
+    ctx.fillStyle=active?wv.color+'33':'rgba(255,255,255,.04)';
+    ctx.strokeStyle=active?wv.color:'rgba(255,255,255,.1)';
+    ctx.lineWidth=active?2:1;
+    ctx.beginPath();ctx.roundRect(sx,sy,slotW,slotH,8);ctx.fill();ctx.stroke();
+    ctx.shadowBlur=0;
+    // Emoji
+    ctx.font='22px serif';ctx.textAlign='center';ctx.fillStyle='#fff';
+    ctx.fillText(wv.emoji,sx+slotW/2,sy+slotH/2+7);
+    // Key number
+    ctx.font='bold 7px Orbitron,monospace';
+    ctx.fillStyle=active?'#fff':'rgba(255,255,255,.25)';
+    ctx.fillText('['+( i+1)+']',sx+slotW/2,sy+10);
+    // Ammo count
+    ctx.font='bold 8px Orbitron,monospace';
     ctx.fillStyle=active?wv.color:'rgba(255,255,255,.2)';
-    ctx.fillText(i+1,sx+slotW/2,sy+slotH-4);
+    ctx.fillText(ammoLeft===Infinity?'∞':ammoLeft,sx+slotW/2,sy+slotH-4);
     ctx.globalAlpha=1;
   });
+  // Active weapon name
+  ctx.textAlign='center';ctx.font='bold 9px Orbitron,monospace';
+  ctx.fillStyle=WEAPONS[player.weapon].color;
+  ctx.shadowColor=WEAPONS[player.weapon].color;ctx.shadowBlur=6;
+  ctx.fillText(WEAPONS[player.weapon].name.toUpperCase()+'  [CLICK TO FIRE]',cw/2,ch-slotH-14);
+  ctx.shadowBlur=0;
 
   // Kills / Deaths
   ctx.textAlign='right';
@@ -649,6 +783,31 @@ function drawMinimap(ctx,cw,ch){
   ctx.shadowBlur=0;ctx.restore();
 }
 
+// ══ Crosshair ══
+function drawCrosshair(ctx){
+  const x=mouse.x, y=mouse.y;
+  const w=WEAPONS[player?.weapon||'pistol'];
+  ctx.save();
+  ctx.strokeStyle=w.color; ctx.lineWidth=1.5;
+  ctx.globalAlpha=0.85;
+  const s=10, g=4;
+  // Cross lines with gap
+  ctx.beginPath();
+  ctx.moveTo(x-s-g,y); ctx.lineTo(x-g,y);
+  ctx.moveTo(x+g,y);   ctx.lineTo(x+s+g,y);
+  ctx.moveTo(x,y-s-g); ctx.lineTo(x,y-g);
+  ctx.moveTo(x,y+g);   ctx.lineTo(x,y+s+g);
+  ctx.stroke();
+  // Center dot
+  ctx.fillStyle=w.color;
+  ctx.beginPath(); ctx.arc(x,y,1.5,0,Math.PI*2); ctx.fill();
+  // Spread indicator (circle sized by weapon spread)
+  const spreadR=Math.max(4,w.spread*60);
+  ctx.strokeStyle=w.color+'55';
+  ctx.beginPath(); ctx.arc(x,y,spreadR,0,Math.PI*2); ctx.stroke();
+  ctx.restore();
+}
+
 // ══ Game Loop ══
 function mlLoop(){
   if(!mlActive){cancelAnimationFrame(mlRAF);return;}
@@ -680,6 +839,7 @@ function mlLoop(){
 
   drawHUD(ctx,cw,ch);
   drawMinimap(ctx,cw,ch);
+  drawCrosshair(ctx);
 }
 
 // ══ Resize ══
@@ -783,7 +943,7 @@ function startGame(mode,botCount,difficulty,room){
 
 // ══ UI State ══
 function showMlPanel(id){
-  ['ml-mode-select','ml-ai-panel','ml-online-panel'].forEach(x=>{
+  ['ml-instructions','ml-mode-select','ml-ai-panel','ml-online-panel'].forEach(x=>{
     const el=document.getElementById(x);
     if(el)el.style.display=x===id?'flex':'none';
   });
@@ -794,7 +954,10 @@ export function openMilitia(){
   showScreen('militia');
   document.getElementById('militia-lobby').style.display='flex';
   document.getElementById('militia-game').style.display='none';
-  showMlPanel('ml-mode-select');
+  // Show instructions if first visit, else mode select
+  const seen=sessionStorage.getItem('ml_seen');
+  showMlPanel(seen?'ml-mode-select':'ml-instructions');
+  sessionStorage.setItem('ml_seen','1');
 }
 
 export function leaveMilitia(){
