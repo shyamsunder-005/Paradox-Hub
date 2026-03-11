@@ -439,7 +439,7 @@ function renderFriendsBlob(){
 // ── Spawn ──
 function spawnFood(n=300){for(let i=0;i<n;i++)foods.push({x:Math.random()*WORLD,y:Math.random()*WORLD,r:2+Math.random()*3.5,color:foodCols[Math.random()*foodCols.length|0]});}
 function spawnViruses(n=18){for(let i=0;i<n;i++)viruses.push({x:100+Math.random()*(WORLD-200),y:100+Math.random()*(WORLD-200),r:62});}
-function spawnBots(n=67){for(let i=bots.length;i<n;i++){const s=14+Math.random()*26;const sp=1.0+Math.random()*1.0;bots.push({x:100+Math.random()*(WORLD-200),y:100+Math.random()*(WORLD-200),r:s,speed:sp,emoji:emojis[Math.floor(Math.random()*emojis.length)],color:blobCols[Math.floor(Math.random()*blobCols.length)],id:bid++,score:s*8,name:'Bot',wander:Math.random()*Math.PI*2,wanderTimer:0});}}
+function spawnBots(n=67){for(let i=bots.length;i<n;i++){const s=14+Math.random()*26;bots.push({x:100+Math.random()*(WORLD-200),y:100+Math.random()*(WORLD-200),r:s,speed:0.9+Math.random()*1.1,emoji:emojis[Math.floor(Math.random()*emojis.length)],color:blobCols[Math.floor(Math.random()*blobCols.length)],id:bid++,score:s*8,name:'Bot',wander:Math.random()*Math.PI*2,wanderTimer:0});}}
 
 // ── Game Logic ──
 function movePlayer(){
@@ -488,27 +488,59 @@ function checkLvl(){
 function moveBots(){
   for(let i=0;i<bots.length;i++){
     const b=bots[i];
-    let tx=player.x,ty=player.y,best=Infinity,flee=false;
+
+    // ── Wander timer — gives each bot a new random walk direction ──
+    b.wanderTimer=(b.wanderTimer||0)-1;
+    if(b.wanderTimer<=0){b.wander=Math.random()*Math.PI*2;b.wanderTimer=60+Math.random()*80;}
+
+    let tx=b.x+Math.cos(b.wander)*200;  // default: wander
+    let ty=b.y+Math.sin(b.wander)*200;
+    let flee=false;
+    let speedMul=1;
+
+    // ── Flee: player is MUCH bigger AND very close ──
     const pd=Math.hypot(player.x-b.x,player.y-b.y);
-    if(player.r>b.r*1.5&&pd<180){flee=true;tx=player.x;ty=player.y;}
+    if(player.r>b.r*1.5&&pd<200){
+      flee=true;tx=player.x;ty=player.y;speedMul=0.65;
+    }
+
+    // ── Hunt: player is smaller AND close enough to be interesting ──
+    if(!flee&&player.r<b.r*0.88&&pd<400){
+      tx=player.x;ty=player.y;
+    }
+
+    // ── Bot vs bot: flee bigger nearby, hunt smaller nearby ──
     for(let j=0;j<bots.length;j++){
       if(i===j)continue;
       const o=bots[j],dd=Math.hypot(o.x-b.x,o.y-b.y);
-      if(dd<best){
-        best=dd;
-        if(o.r>b.r*1.5&&dd<180){flee=true;tx=o.x;ty=o.y;}
-        else if(o.r<b.r*0.88){flee=false;tx=o.x;ty=o.y;}
+      if(o.r>b.r*1.5&&dd<200){flee=true;tx=o.x;ty=o.y;speedMul=0.65;break;}
+      if(!flee&&o.r<b.r*0.88&&dd<350){tx=o.x;ty=o.y;}
+    }
+
+    // ── Seek nearest food cluster if nothing interesting nearby ──
+    if(!flee&&pd>400){
+      let bf=Infinity;
+      for(let k=0;k<foods.length;k+=5){
+        const fd=Math.hypot(foods[k].x-b.x,foods[k].y-b.y);
+        if(fd<bf){bf=fd;tx=foods[k].x;ty=foods[k].y;}
       }
     }
-    // Flee viruses if large
+
+    // ── Flee viruses if large ──
     for(const v of viruses){
-      if(b.r>v.r*0.9&&Math.hypot(v.x-b.x,v.y-b.y)<220){tx=b.x*2-v.x;ty=b.y*2-v.y;flee=false;break;}
+      if(b.r>v.r*0.9&&Math.hypot(v.x-b.x,v.y-b.y)<220){tx=b.x*2-v.x;ty=b.y*2-v.y;flee=false;speedMul=1;break;}
     }
+
+    // ── Wall avoidance ──
+    if(b.x<300){tx=WORLD/2;ty=b.y;}
+    else if(b.x>WORLD-300){tx=WORLD/2;ty=b.y;}
+    if(b.y<300){ty=WORLD/2;tx=b.x;}
+    else if(b.y>WORLD-300){ty=WORLD/2;tx=b.x;}
+
     const angle=Math.atan2(ty-b.y,tx-b.x);
     const dir=flee?-1:1;
-    const spd=flee?b.speed*0.65:b.speed;
-    b.x+=Math.cos(angle)*spd*dir;
-    b.y+=Math.sin(angle)*spd*dir;
+    b.x+=Math.cos(angle)*b.speed*speedMul*dir;
+    b.y+=Math.sin(angle)*b.speed*speedMul*dir;
     clamp(b);
   }
 }
@@ -752,32 +784,39 @@ function interpolateNetPlayers(){
 }
 
 function drawMinimap(){
-  const MW=160,MH=160,s=MW/WORLD;
-  if(mmc.width!==MW){mmc.width=MW;mmc.height=MH;}
-  mmx.clearRect(0,0,MW,MH);
-  mmx.fillStyle='rgba(4,4,16,.95)';mmx.fillRect(0,0,MW,MH);
-  // Food
-  for(let i=0;i<foods.length;i+=3){const f=foods[i];mmx.fillStyle=f.color;mmx.fillRect(f.x*s,f.y*s,2,2);}
-  // Bots
+  // Canvas is 120x120 in HTML — scale world coords down to fit
+  const MW=160,s=MW/WORLD;
+  if(mmc.width!==MW){mmc.width=MW;mmc.height=MW;}
+  mmx.clearRect(0,0,MW,MW);
+  mmx.fillStyle='rgba(4,4,16,.95)';mmx.fillRect(0,0,MW,MW);
+  // Food — skip every 4th for perf, fixed 2×2 dot
+  for(let i=0;i<foods.length;i+=4){
+    const f=foods[i];
+    mmx.fillStyle=f.color;
+    mmx.fillRect(f.x*s,f.y*s,2,2);
+  }
+  // Bots — fixed radius 2.5px so they're always visible regardless of r*s being tiny
   bots.forEach(b=>{
     mmx.fillStyle=b.color||'#aaa';
-    mmx.beginPath();mmx.arc(b.x*s,b.y*s,Math.max(2,b.r*s*3),0,Math.PI*2);mmx.fill();
+    mmx.beginPath();mmx.arc(b.x*s,b.y*s,2.5,0,Math.PI*2);mmx.fill();
   });
   // Net players
   netPlayers.forEach(p=>{
-    mmx.fillStyle=p.color||'#fff';mmx.shadowBlur=5;mmx.shadowColor=p.color||'#fff';
-    mmx.beginPath();mmx.arc(p.x*s,p.y*s,Math.max(3,p.r*s*3.5),0,Math.PI*2);mmx.fill();
+    mmx.fillStyle=p.color||'#fff';mmx.shadowBlur=4;mmx.shadowColor=p.color||'#fff';
+    mmx.beginPath();mmx.arc(p.x*s,p.y*s,3.5,0,Math.PI*2);mmx.fill();
     mmx.shadowBlur=0;
   });
-  // Player
-  mmx.fillStyle='#00f5c4';mmx.shadowColor='#00f5c4';mmx.shadowBlur=12;
-  mmx.beginPath();mmx.arc(player.x*s,player.y*s,Math.max(4,player.r*s*4),0,Math.PI*2);mmx.fill();
+  // Player — bright teal, always visible
+  mmx.fillStyle='#00f5c4';mmx.shadowColor='#00f5c4';mmx.shadowBlur=10;
+  mmx.beginPath();mmx.arc(player.x*s,player.y*s,4,0,Math.PI*2);mmx.fill();
   mmx.shadowBlur=0;
-  // Viewport box
-  mmx.strokeStyle='rgba(0,245,196,.6)';mmx.lineWidth=1.5;
-  mmx.strokeRect(cam.x*s,cam.y*s,(blobCanvas.width/cam.z)*s,(blobCanvas.height/cam.z)*s);
-  // Outer border
-  mmx.strokeStyle='rgba(0,245,196,.2)';mmx.lineWidth=1;mmx.strokeRect(0,0,MW,MH);
+  // Viewport box — shows what area is currently on screen
+  const vx=cam.x*s,vy=cam.y*s;
+  const vw=(blobCanvas.width/cam.z)*s,vh=(blobCanvas.height/cam.z)*s;
+  mmx.strokeStyle='rgba(0,245,196,.7)';mmx.lineWidth=1.5;
+  mmx.strokeRect(vx,vy,vw,vh);
+  // Border
+  mmx.strokeStyle='rgba(0,245,196,.25)';mmx.lineWidth=1;mmx.strokeRect(0,0,MW,MW);
 }
 
 function blobUpdate(){
