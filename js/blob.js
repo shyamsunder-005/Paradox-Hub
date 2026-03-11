@@ -439,7 +439,7 @@ function renderFriendsBlob(){
 // ── Spawn ──
 function spawnFood(n=300){for(let i=0;i<n;i++)foods.push({x:Math.random()*WORLD,y:Math.random()*WORLD,r:2+Math.random()*3.5,color:foodCols[Math.random()*foodCols.length|0]});}
 function spawnViruses(n=18){for(let i=0;i<n;i++)viruses.push({x:100+Math.random()*(WORLD-200),y:100+Math.random()*(WORLD-200),r:62});}
-function spawnBots(n=67){for(let i=bots.length;i<n;i++){const s=14+Math.random()*26;bots.push({x:100+Math.random()*(WORLD-200),y:100+Math.random()*(WORLD-200),r:s,speed:0.9+Math.random()*1.1,emoji:emojis[Math.floor(Math.random()*emojis.length)],color:blobCols[Math.floor(Math.random()*blobCols.length)],id:bid++,score:s*8,name:'Bot',wander:Math.random()*Math.PI*2,wanderTimer:0,heading:Math.random()*Math.PI*2});}}
+function spawnBots(n=67){for(let i=bots.length;i<n;i++){const s=14+Math.random()*26;bots.push({x:100+Math.random()*(WORLD-200),y:100+Math.random()*(WORLD-200),r:s,speed:0.9+Math.random()*1.1,emoji:emojis[Math.floor(Math.random()*emojis.length)],color:blobCols[Math.floor(Math.random()*blobCols.length)],id:bid++,score:s*8,name:'Bot',wander:Math.random()*Math.PI*2,wanderTimer:0,heading:Math.random()*Math.PI*2,foodTimer:0,foodTarget:null});}}
 
 // ── Game Logic ──
 function movePlayer(){
@@ -489,83 +489,79 @@ function moveBots(){
   for(let i=0;i<bots.length;i++){
     const b=bots[i];
 
-    // ── Wander: nudge direction smoothly rather than snapping ──
+    // Wander: nudge direction slowly, long timer = stable glide
     b.wanderTimer=(b.wanderTimer||0)-1;
     if(b.wanderTimer<=0){
-      b.wander=(b.wander||0)+(Math.random()-.5)*1.8;
-      b.wanderTimer=90+Math.random()*120;
+      b.wander=(b.wander||0)+(Math.random()-.5)*1.4;
+      b.wanderTimer=120+Math.random()*160;
+    }
+
+    // Food target: only recalculate every ~60 frames (not every frame)
+    b.foodTimer=(b.foodTimer||0)-1;
+    if(b.foodTimer<=0){
+      b.foodTimer=60+Math.random()*40;
+      let bf=Infinity;b.foodTarget=null;
+      for(let k=0;k<foods.length;k+=6){
+        const fd=Math.hypot(foods[k].x-b.x,foods[k].y-b.y);
+        if(fd<bf){bf=fd;b.foodTarget={x:foods[k].x,y:foods[k].y};}
+      }
     }
 
     let desiredAngle=b.wander||0;
-    let speedMul=1;
-    let flee=false;
+    let speedMul=1,flee=false,hasTarget=false;
 
-    // ── Flee: player very close AND much bigger — run AWAY ──
+    // Flee: player very close AND much bigger — run away
     const pd=Math.hypot(player.x-b.x,player.y-b.y);
     if(player.r>b.r*1.5&&pd<200){
-      flee=true;
+      flee=true;hasTarget=true;speedMul=0.7;
       desiredAngle=Math.atan2(b.y-player.y,b.x-player.x);
-      speedMul=0.7;
     }
-
-    // ── Hunt: player is smaller AND nearby ──
+    // Hunt: player smaller AND nearby
     if(!flee&&player.r<b.r*0.88&&pd<450){
+      hasTarget=true;
       desiredAngle=Math.atan2(player.y-b.y,player.x-b.x);
     }
-
-    // ── Bot vs bot: flee bigger, hunt smaller ──
-    for(let j=0;j<bots.length;j++){
-      if(i===j)continue;
-      const o=bots[j],dd=Math.hypot(o.x-b.x,o.y-b.y);
-      if(o.r>b.r*1.5&&dd<200){
-        flee=true;desiredAngle=Math.atan2(b.y-o.y,b.x-o.x);speedMul=0.7;break;
-      }
-      if(!flee&&o.r<b.r*0.88&&dd<350){
-        desiredAngle=Math.atan2(o.y-b.y,o.x-b.x);
+    // Bot vs bot
+    if(!hasTarget){
+      for(let j=0;j<bots.length;j++){
+        if(i===j)continue;
+        const o=bots[j],dd=Math.hypot(o.x-b.x,o.y-b.y);
+        if(o.r>b.r*1.5&&dd<200){
+          flee=true;hasTarget=true;speedMul=0.7;
+          desiredAngle=Math.atan2(b.y-o.y,b.x-o.x);break;
+        }
+        if(o.r<b.r*0.88&&dd<350){
+          hasTarget=true;
+          desiredAngle=Math.atan2(o.y-b.y,o.x-b.x);
+        }
       }
     }
-
-    // ── Seek nearest food when idle ──
-    if(!flee&&pd>400){
-      let bf=Infinity,fx=0,fy=0;
-      for(let k=0;k<foods.length;k+=6){
-        const fd=Math.hypot(foods[k].x-b.x,foods[k].y-b.y);
-        if(fd<bf){bf=fd;fx=foods[k].x;fy=foods[k].y;}
-      }
-      if(bf<Infinity)desiredAngle=Math.atan2(fy-b.y,fx-b.x);
+    // Seek cached food when truly idle
+    if(!flee&&!hasTarget&&pd>400&&b.foodTarget){
+      desiredAngle=Math.atan2(b.foodTarget.y-b.y,b.foodTarget.x-b.x);
     }
-
-    // ── Flee viruses if large ──
+    // Flee viruses
     for(const v of viruses){
       if(b.r>v.r*0.9&&Math.hypot(v.x-b.x,v.y-b.y)<220){
         desiredAngle=Math.atan2(b.y-v.y,b.x-v.x);flee=false;speedMul=1;break;
       }
     }
+    // Soft wall push
+    const mg=600;
+    if(b.x<mg)            desiredAngle=blobLerpA(desiredAngle,0,           0.4);
+    else if(b.x>WORLD-mg) desiredAngle=blobLerpA(desiredAngle,Math.PI,     0.4);
+    if(b.y<mg)            desiredAngle=blobLerpA(desiredAngle,Math.PI*0.5, 0.4);
+    else if(b.y>WORLD-mg) desiredAngle=blobLerpA(desiredAngle,-Math.PI*0.5,0.4);
 
-    // ── Soft wall push: gradually steer inward near edges ──
-    const margin=600;
-    if(b.x<margin)           desiredAngle=lerpAngle(desiredAngle,0,           0.4);
-    else if(b.x>WORLD-margin)desiredAngle=lerpAngle(desiredAngle,Math.PI,     0.4);
-    if(b.y<margin)           desiredAngle=lerpAngle(desiredAngle,Math.PI*0.5, 0.4);
-    else if(b.y>WORLD-margin)desiredAngle=lerpAngle(desiredAngle,-Math.PI*0.5,0.4);
-
-    // ── Smooth turn: interpolate heading toward desired direction ──
-    const turnRate=flee?0.18:0.07;
-    b.heading=lerpAngle(b.heading!=null?b.heading:desiredAngle,desiredAngle,turnRate);
-
+    // Smooth heading interpolation
+    const tr=flee?0.18:0.07;
+    b.heading=blobLerpA(b.heading!=null?b.heading:desiredAngle,desiredAngle,tr);
     b.x+=Math.cos(b.heading)*b.speed*speedMul;
     b.y+=Math.sin(b.heading)*b.speed*speedMul;
     clamp(b);
   }
 }
-
-// Shortest-path angle lerp (handles 0/2π wrap)
-function lerpAngle(a,b,t){
-  let d=b-a;
-  while(d>Math.PI)d-=Math.PI*2;
-  while(d<-Math.PI)d+=Math.PI*2;
-  return a+d*t;
-}
+function blobLerpA(a,b,t){let d=b-a;while(d>Math.PI)d-=Math.PI*2;while(d<-Math.PI)d+=Math.PI*2;return a+d*t;}
 
 function eatFood(){
   for(let i=foods.length-1;i>=0;i--){
@@ -620,8 +616,8 @@ function collisions(){
     for(let j=i+1;j<bots.length;j++){
       const a=bots[i],b=bots[j],d=Math.hypot(b.x-a.x,b.y-a.y);
       if(d<a.r+b.r-8){
-        if(a.r>b.r*1.12){a.r+=b.r*.28;a.score+=b.score;bots.splice(j,1);spawnBots(67);break;}
-        else if(b.r>a.r*1.12){b.r+=a.r*.28;b.score+=a.score;bots.splice(i,1);spawnBots(67);break;}
+        if(a.r>b.r*1.05){a.r+=b.r*.28;a.score+=b.score;bots.splice(j,1);spawnBots(67);break;}
+        else if(b.r>a.r*1.05){b.r+=a.r*.28;b.score+=a.score;bots.splice(i,1);spawnBots(67);break;}
       }
     }
   }
@@ -808,8 +804,7 @@ function interpolateNetPlayers(){
 function drawMinimap(){
   const MW=160,s=MW/WORLD;
   if(mmc.width!==MW){mmc.width=MW;mmc.height=MW;}
-  mmx.clearRect(0,0,MW,MW);
-  mmx.fillStyle='rgba(4,4,16,.95)';mmx.fillRect(0,0,MW,MW);
+  mmx.clearRect(0,0,MW,MW);mmx.fillStyle='rgba(4,4,16,.95)';mmx.fillRect(0,0,MW,MW);
   for(let i=0;i<foods.length;i+=4){const f=foods[i];mmx.fillStyle=f.color;mmx.fillRect(f.x*s,f.y*s,2,2);}
   bots.forEach(b=>{mmx.fillStyle=b.color||'#aaa';mmx.beginPath();mmx.arc(b.x*s,b.y*s,2.5,0,Math.PI*2);mmx.fill();});
   netPlayers.forEach(p=>{mmx.fillStyle=p.color||'#fff';mmx.shadowBlur=4;mmx.shadowColor=p.color||'#fff';mmx.beginPath();mmx.arc(p.x*s,p.y*s,3.5,0,Math.PI*2);mmx.fill();mmx.shadowBlur=0;});
