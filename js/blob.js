@@ -12,6 +12,9 @@ export function leaveBlob(){
   document.getElementById('game').style.display='none';
   showScreen('hub');
 }
+// (openTrivia/leaveTrivia defined in main.js)
+// (openTrivia/leaveTrivia defined in main.js)
+// (openTrivia/leaveTrivia defined in main.js)
 
 // ══════════════════════════════════════════════════
 // ══ BOB ARENA ══
@@ -52,9 +55,7 @@ document.addEventListener('mousemove',e=>{mouse.x=e.clientX;mouse.y=e.clientY;})
 
 // ── Lobby particles ──
 (function(){
-  const lc=document.getElementById('lobby-canvas');
-  if(!lc) return; // Prevent crashes if canvas isn't present
-  const lx=lc.getContext('2d');
+  const lc=document.getElementById('lobby-canvas'),lx=lc.getContext('2d');
   lc.width=innerWidth;lc.height=innerHeight;
   const pts=Array.from({length:80},()=>({x:Math.random()*lc.width,y:Math.random()*lc.height,
     r:Math.random()*2+.5,vx:(Math.random()-.5)*.4,vy:(Math.random()-.5)*.4,
@@ -71,20 +72,19 @@ const speedLabels={1:'SLOW',1.5:'SLOW',2:'NORMAL',2.4:'NORMAL',2.5:'FAST',3:'FAS
 function updateSpeedSlider(val){
   val=parseFloat(val);mySpeed=val;
   const sl=document.getElementById('speed-slider');
-  if(sl) sl.style.setProperty('--pct',((val-1)/4*100).toFixed(1)+'%');
-  const svl=document.getElementById('speed-val-label');
-  if(svl) svl.textContent=speedLabels[val]||'CUSTOM';
+  sl.style.setProperty('--pct',((val-1)/4*100).toFixed(1)+'%');
+  document.getElementById('speed-val-label').textContent=speedLabels[val]||'CUSTOM';
 }
 
 function initBlobLobby(){
   myName=state.myDisplayName;
   const ni=document.getElementById('inp-name');if(ni)ni.value=myName;
   const rd=document.getElementById('room-display');if(rd)rd.style.display='none';
-  const ir=document.getElementById('inp-room');if(ir)ir.value='';
+  document.getElementById('inp-room').value='';
   const sl=document.getElementById('speed-slider');if(sl){sl.value=mySpeed;updateSpeedSlider(mySpeed);}
 
   const ep=document.getElementById('emoji-pick');
-  if(ep && ep.children.length===0){
+  if(ep.children.length===0){
     emojis.forEach((em,i)=>{
       const b=document.createElement('button');
       b.className='ep-btn'+(i===0?' sel':'');b.textContent=em;
@@ -97,7 +97,7 @@ function initBlobLobby(){
     blobCols.forEach((col,i)=>{
       const d=document.createElement('div');d.className='col-swatch'+(i===0?' sel':'');
       d.style.background=col;d.onclick=()=>{myColor=col;document.querySelectorAll('.col-swatch').forEach(x=>x.classList.remove('sel'));d.classList.add('sel');updatePreviews();};
-      if(cr) cr.appendChild(d);
+      cr.appendChild(d);
     });
     // Skins
     const sr=document.getElementById('skin-row');
@@ -108,14 +108,14 @@ function initBlobLobby(){
       const lbl=document.createElement('div');lbl.style.cssText='font-size:7px;color:rgba(255,255,255,.4);text-align:center;font-family:Orbitron,monospace;letter-spacing:1px;';
       lbl.textContent=sk.label;btn.appendChild(lbl);
       btn.onclick=()=>{mySkin=sk.id;document.querySelectorAll('.skin-btn').forEach(x=>x.classList.remove('sel'));btn.classList.add('sel');updatePreviews();};
-      if(sr) sr.appendChild(btn);
+      sr.appendChild(btn);
     });
     // Tag colors
     const tc=document.getElementById('tag-color-row');
     tagCols.forEach((col,i)=>{
       const d=document.createElement('div');d.className='tag-col'+(i===0?' sel':'');d.style.background=col;
       d.onclick=()=>{myTagColor=col;document.querySelectorAll('.tag-col').forEach(x=>x.classList.remove('sel'));d.classList.add('sel');updatePreviews();};
-      if(tc) tc.appendChild(d);
+      tc.appendChild(d);
     });
     // Badges
     const tb=document.getElementById('tag-badge-row');
@@ -123,7 +123,7 @@ function initBlobLobby(){
       const btn=document.createElement('button');btn.className='tag-badge'+(i===0?' sel':'');
       btn.textContent=i===0?'None':b+(myName||'Name');
       btn.onclick=()=>{myTagBadge=b;document.querySelectorAll('.tag-badge').forEach(x=>x.classList.remove('sel'));btn.classList.add('sel');updatePreviews();};
-      if(tb) tb.appendChild(btn);
+      tb.appendChild(btn);
     });
     document.addEventListener('input',e=>{if(e.target.id==='inp-name')updatePreviews();},{once:false});
   }
@@ -187,8 +187,7 @@ async function loadBlobLB(){
   const lb=await fbGet('players')||{};
   const rows=Object.values(lb).sort((a,b)=>(b.best||0)-(a.best||0)).slice(0,6);
   const medals=['#1','#2','#3'];
-  const llb = document.getElementById('lobby-lb');
-  if(llb) llb.innerHTML=rows.length?rows.map((r,i)=>
+  document.getElementById('lobby-lb').innerHTML=rows.length?rows.map((r,i)=>
     '<div class="lobby-lb-row"><span class="lr-rank">'+(medals[i]||i+1)+'</span><span class="lr-emoji">'+(r.emoji||'🫧')+'</span><span class="lr-name">'+esc(r.name)+'</span><span class="lr-score">'+fmt(r.best||0)+'</span></div>'
   ).join(''):'<div style="text-align:center;color:rgba(255,255,255,.18);padding:16px;font-size:12px">No records yet!</div>';
 }
@@ -200,15 +199,15 @@ export function enterRoom(){
   if(!n){flashInp('inp-name');return;}
   let r=document.getElementById('inp-room').value.trim().toUpperCase();
   if(!r){r=genCode();document.getElementById('inp-room').value=r;}
-  const rdc=document.getElementById('room-display-code');if(rdc)rdc.textContent=r;
-  const rd=document.getElementById('room-display');if(rd)rd.style.display='block';
+  document.getElementById('room-display-code').textContent=r;
+  document.getElementById('room-display').style.display='block';
   setTimeout(()=>startBlobGame(n,r),900);
 }
 export function genAndFill(){
   const code=genCode();
-  const ir=document.getElementById('inp-room');if(ir)ir.value=code;
-  const rdc=document.getElementById('room-display-code');if(rdc)rdc.textContent=code;
-  const rd=document.getElementById('room-display');if(rd)rd.style.display='block';
+  document.getElementById('inp-room').value=code;
+  document.getElementById('room-display-code').textContent=code;
+  document.getElementById('room-display').style.display='block';
 }
 export function toggleBlobStyle(el){
   const body=el.nextElementSibling;
@@ -231,9 +230,9 @@ async function startBlobGame(name,room){
   bots=[];foods=[];viruses=[];
   keys={};
 
-  const bl=document.getElementById('blob-lobby');if(bl)bl.style.display='none';
-  const g=document.getElementById('game');if(g)g.style.display='block';
-  const rc=document.getElementById('room-code');if(rc)rc.textContent=room;
+  document.getElementById('blob-lobby').style.display='none';
+  document.getElementById('game').style.display='block';
+  document.getElementById('room-code').textContent=room;
 
   blobCanvas=document.getElementById('canvas');
   blobCtx=blobCanvas.getContext('2d');
@@ -251,8 +250,8 @@ async function startBlobGame(name,room){
   // HUD update interval
   blobIntervals.push(setInterval(()=>{
     if(gover)return;
-    const hsc=document.getElementById('h-score');if(hsc)hsc.textContent=fmt(player.score);
-    const hlv=document.getElementById('h-lvl');if(hlv)hlv.textContent=player.level;
+    document.getElementById('h-score').textContent=fmt(player.score);
+    document.getElementById('h-lvl').textContent=player.level;
     const hs=document.getElementById('h-speed');if(hs)hs.textContent=player.speed.toFixed(1)+'x';
   },300));
 
@@ -361,8 +360,8 @@ async function blobSyncStart(){
 
     netPlayers=Object.values(netInterp);
     const rc=netPlayers.length+1;
-    const hp=document.getElementById('h-players');if(hp)hp.textContent=rc;
-    const rp=document.getElementById('room-players');if(rp)rp.textContent=rc;
+    document.getElementById('h-players').textContent=rc;
+    document.getElementById('room-players').textContent=rc;
     updateBlobLB();
   });
 
@@ -399,52 +398,38 @@ async function blobSyncStart(){
 
 function blobChatStart(){
   fbListen('chat',snap=>{
-    if(!snap)return;
-    const el=document.getElementById('chat-msgs');
-    if(!el)return;
+    if(!snap)return;const el=document.getElementById('chat-msgs');
     Object.values(snap).sort((a,b)=>a.ts-b.ts).filter(m=>!blobSeenIds.has(m.id)).forEach(m=>{
       blobSeenIds.add(m.id);const d=document.createElement('div');
       d.className='cmsg'+(m.sys?' sys':'');
       if(m.sys)d.innerHTML='<span class="ct">'+esc(m.text)+'</span>';
-      else d.innerHTML='<span class="cn" style="color:'+esc(m.color||'#fff')+'">'+esc(m.user)+'</span> <span class="ct">'+esc(m.text)+'</span>';
+      else d.innerHTML='<span class="cn" style="color:'+(m.color||'#fff')+'">'+esc(m.user)+'</span> <span class="ct">'+esc(m.text)+'</span>';
       el.appendChild(d);});el.scrollTop=el.scrollHeight;
   });
 }
 export async function sendChat(){
-  const inp=document.getElementById('chat-inp');if(!inp)return;
-  const txt=inp.value.trim();if(!txt)return;inp.value='';
+  const inp=document.getElementById('chat-inp'),txt=inp.value.trim();if(!txt)return;inp.value='';
   await fbPush('chat',{id:Date.now()+state.myId,user:myName,text:txt,color:myColor,sys:false,ts:Date.now()});
 }
 async function blobSysMsg(txt){await fbPush('chat',{id:Date.now()+'sys'+state.myId,text:txt,sys:true,ts:Date.now()});}
 export function chatKey(e){e.stopPropagation();if(e.key==='Enter')sendChat();}
 
 // ── Leaderboard ──
-export function setTab(t){
-  blobTab=t;
-  ['global','room','friends'].forEach(x=>{
-    const el=document.getElementById('tab-'+x);
-    if(el)el.className='sp-tab'+(x===t?' on':'');
-  });
-  updateBlobLB();
-}
+export function setTab(t){blobTab=t;['global','room','friends'].forEach(x=>{document.getElementById('tab-'+x).className='sp-tab'+(x===t?' on':'');});updateBlobLB();}
 function updateBlobLB(){
   const el=document.getElementById('lb-list');
-  if(!el)return;
   if(blobTab==='friends'){el.innerHTML=renderFriendsBlob();return;}
   const now=Date.now();
   let entries=Object.values(lbData).filter(p=>(now-p.ts)<10000&&p.alive===true);
   if(blobTab==='room')entries=entries.filter(p=>p.room===myRoom);
-  
-  // Bugfix: `.slice()` before sorting prevents bots array mutation which ruins iteration in main loops
-  const botEnt=bots.slice().sort((a,b)=>b.score-a.score).slice(0,4).map(b=>({id:'b'+b.id,name:'Bot',emoji:b.emoji,color:b.color||'#888',score:b.score,room:myRoom}));
-  
+  const botEnt=bots.sort((a,b)=>b.score-a.score).slice(0,4).map(b=>({id:'b'+b.id,name:'Bot',emoji:b.emoji,color:b.color||'#888',score:b.score,room:myRoom}));
   entries=[...entries,...botEnt].sort((a,b)=>b.score-a.score);
   let myIdx=entries.findIndex(e=>e.id===state.myId);
   if(myIdx<0){entries.push({id:state.myId,name:myName,emoji:myEmoji,color:myColor,score:player.score,room:myRoom});entries.sort((a,b)=>b.score-a.score);myIdx=entries.findIndex(e=>e.id===state.myId);}
-  const hr=document.getElementById('h-rank');if(hr)hr.textContent='#'+(myIdx+1);
+  document.getElementById('h-rank').textContent='#'+(myIdx+1);
   const medals=['🥇','🥈','🥉'];
   el.innerHTML=entries.slice(0,50).map((e,i)=>{const me=e.id===state.myId;
-    return'<div class="lbe'+(me?' mine':'')+'"><div class="lbe-num">'+(medals[i]||i+1)+'</div><div class="lbe-em">'+(e.emoji||'○')+'</div><div class="lbe-info"><div class="lbe-name" style="color:'+(me?'var(--c1)':esc(e.color||'#fff'))+'">'+esc(e.name)+(me?' ◀':'')+'</div>'+(blobTab==='global'?'<div class="lbe-tag">'+esc(e.room||'')+'</div>':'')+'</div><div class="lbe-pts">'+fmt(e.score)+'</div></div>';
+    return'<div class="lbe'+(me?' mine':'')+'"><div class="lbe-num">'+(medals[i]||i+1)+'</div><div class="lbe-em">'+(e.emoji||'○')+'</div><div class="lbe-info"><div class="lbe-name" style="color:'+(me?'var(--c1)':e.color||'#fff')+'">'+esc(e.name)+(me?' ◀':'')+'</div>'+(blobTab==='global'?'<div class="lbe-tag">'+(e.room||'')+'</div>':'')+'</div><div class="lbe-pts">'+fmt(e.score)+'</div></div>';
   }).join('');
 }
 function renderFriendsBlob(){
@@ -454,7 +439,7 @@ function renderFriendsBlob(){
 // ── Spawn ──
 function spawnFood(n=300){for(let i=0;i<n;i++)foods.push({x:Math.random()*WORLD,y:Math.random()*WORLD,r:2+Math.random()*3.5,color:foodCols[Math.random()*foodCols.length|0]});}
 function spawnViruses(n=18){for(let i=0;i<n;i++)viruses.push({x:100+Math.random()*(WORLD-200),y:100+Math.random()*(WORLD-200),r:62});}
-function spawnBots(n=67){for(let i=bots.length;i<n;i++){const s=14+Math.random()*26;bots.push({x:100+Math.random()*(WORLD-200),y:100+Math.random()*(WORLD-200),r:s,speed:0.9+Math.random()*1.1,emoji:emojis[Math.floor(Math.random()*emojis.length)],color:blobCols[Math.floor(Math.random()*blobCols.length)],id:bid++,score:s*8,name:'Bot',wander:Math.random()*Math.PI*2,wanderTimer:0});}}
+function spawnBots(n=67){for(let i=bots.length;i<n;i++){const s=14+Math.random()*26;bots.push({x:100+Math.random()*(WORLD-200),y:100+Math.random()*(WORLD-200),r:s,speed:0.9+Math.random()*1.1,emoji:emojis[Math.floor(Math.random()*emojis.length)],color:blobCols[Math.floor(Math.random()*blobCols.length)],id:bid++,score:s*8,name:'Bot',wander:Math.random()*Math.PI*2,wanderTimer:0,heading:Math.random()*Math.PI*2});}}
 
 // ── Game Logic ──
 function movePlayer(){
@@ -496,8 +481,7 @@ function checkLvl(){
     player.level++;
     bots.forEach(b=>b.speed=Math.min(2.5,b.speed+.015));
     const p=document.createElement('div');p.className='lvl-popup';p.textContent='LVL '+player.level;
-    const gm=document.getElementById('game');
-    if(gm){gm.appendChild(p);setTimeout(()=>p.remove(),2100);}
+    document.getElementById('game').appendChild(p);setTimeout(()=>p.remove(),2100);
   }
 }
 
@@ -505,60 +489,82 @@ function moveBots(){
   for(let i=0;i<bots.length;i++){
     const b=bots[i];
 
-    // ── Wander timer — gives each bot a new random walk direction ──
+    // ── Wander: nudge direction smoothly rather than snapping ──
     b.wanderTimer=(b.wanderTimer||0)-1;
-    if(b.wanderTimer<=0){b.wander=Math.random()*Math.PI*2;b.wanderTimer=60+Math.random()*80;}
+    if(b.wanderTimer<=0){
+      b.wander=(b.wander||0)+(Math.random()-.5)*1.8;
+      b.wanderTimer=90+Math.random()*120;
+    }
 
-    let tx=b.x+Math.cos(b.wander)*200;  // default: wander
-    let ty=b.y+Math.sin(b.wander)*200;
-    let flee=false;
+    let desiredAngle=b.wander||0;
     let speedMul=1;
+    let flee=false;
 
-    // ── Flee: player is MUCH bigger AND very close ──
+    // ── Flee: player very close AND much bigger — run AWAY ──
     const pd=Math.hypot(player.x-b.x,player.y-b.y);
     if(player.r>b.r*1.5&&pd<200){
-      flee=true;tx=player.x;ty=player.y;speedMul=0.65;
+      flee=true;
+      desiredAngle=Math.atan2(b.y-player.y,b.x-player.x);
+      speedMul=0.7;
     }
 
-    // ── Hunt: player is smaller AND close enough to be interesting ──
-    if(!flee&&player.r<b.r*0.88&&pd<400){
-      tx=player.x;ty=player.y;
+    // ── Hunt: player is smaller AND nearby ──
+    if(!flee&&player.r<b.r*0.88&&pd<450){
+      desiredAngle=Math.atan2(player.y-b.y,player.x-b.x);
     }
 
-    // ── Bot vs bot: flee bigger nearby, hunt smaller nearby ──
+    // ── Bot vs bot: flee bigger, hunt smaller ──
     for(let j=0;j<bots.length;j++){
       if(i===j)continue;
       const o=bots[j],dd=Math.hypot(o.x-b.x,o.y-b.y);
-      if(o.r>b.r*1.5&&dd<200){flee=true;tx=o.x;ty=o.y;speedMul=0.65;break;}
-      if(!flee&&o.r<b.r*0.88&&dd<350){tx=o.x;ty=o.y;}
+      if(o.r>b.r*1.5&&dd<200){
+        flee=true;desiredAngle=Math.atan2(b.y-o.y,b.x-o.x);speedMul=0.7;break;
+      }
+      if(!flee&&o.r<b.r*0.88&&dd<350){
+        desiredAngle=Math.atan2(o.y-b.y,o.x-b.x);
+      }
     }
 
-    // ── Seek nearest food cluster if nothing interesting nearby ──
+    // ── Seek nearest food when idle ──
     if(!flee&&pd>400){
-      let bf=Infinity;
-      for(let k=0;k<foods.length;k+=5){
+      let bf=Infinity,fx=0,fy=0;
+      for(let k=0;k<foods.length;k+=6){
         const fd=Math.hypot(foods[k].x-b.x,foods[k].y-b.y);
-        if(fd<bf){bf=fd;tx=foods[k].x;ty=foods[k].y;}
+        if(fd<bf){bf=fd;fx=foods[k].x;fy=foods[k].y;}
       }
+      if(bf<Infinity)desiredAngle=Math.atan2(fy-b.y,fx-b.x);
     }
 
     // ── Flee viruses if large ──
     for(const v of viruses){
-      if(b.r>v.r*0.9&&Math.hypot(v.x-b.x,v.y-b.y)<220){tx=b.x*2-v.x;ty=b.y*2-v.y;flee=false;speedMul=1;break;}
+      if(b.r>v.r*0.9&&Math.hypot(v.x-b.x,v.y-b.y)<220){
+        desiredAngle=Math.atan2(b.y-v.y,b.x-v.x);flee=false;speedMul=1;break;
+      }
     }
 
-    // ── Wall avoidance ──
-    if(b.x<300){tx=WORLD/2;ty=b.y;}
-    else if(b.x>WORLD-300){tx=WORLD/2;ty=b.y;}
-    if(b.y<300){ty=WORLD/2;tx=b.x;}
-    else if(b.y>WORLD-300){ty=WORLD/2;tx=b.x;}
+    // ── Soft wall push: gradually steer inward near edges ──
+    const margin=600;
+    if(b.x<margin)           desiredAngle=lerpAngle(desiredAngle,0,           0.4);
+    else if(b.x>WORLD-margin)desiredAngle=lerpAngle(desiredAngle,Math.PI,     0.4);
+    if(b.y<margin)           desiredAngle=lerpAngle(desiredAngle,Math.PI*0.5, 0.4);
+    else if(b.y>WORLD-margin)desiredAngle=lerpAngle(desiredAngle,-Math.PI*0.5,0.4);
 
-    const angle=Math.atan2(ty-b.y,tx-b.x);
-    const dir=flee?-1:1;
-    b.x+=Math.cos(angle)*b.speed*speedMul*dir;
-    b.y+=Math.sin(angle)*b.speed*speedMul*dir;
+    // ── Smooth turn: interpolate heading toward desired direction ──
+    const turnRate=flee?0.18:0.07;
+    b.heading=lerpAngle(b.heading!=null?b.heading:desiredAngle,desiredAngle,turnRate);
+
+    b.x+=Math.cos(b.heading)*b.speed*speedMul;
+    b.y+=Math.sin(b.heading)*b.speed*speedMul;
     clamp(b);
   }
+}
+
+// Shortest-path angle lerp (handles 0/2π wrap)
+function lerpAngle(a,b,t){
+  let d=b-a;
+  while(d>Math.PI)d-=Math.PI*2;
+  while(d<-Math.PI)d+=Math.PI*2;
+  return a+d*t;
 }
 
 function eatFood(){
@@ -596,14 +602,13 @@ function collisions(){
   bots.forEach(b=>checkViruses(b));
 
   // Player vs bots
-  // Bugfix: Uses `.splice()` instead of an external filter function to prevent array indexing issues 
   for(let i=bots.length-1;i>=0;i--){
     const b=bots[i];
     const d=Math.hypot(b.x-player.x,b.y-player.y);
     if(d<player.r+b.r-4){
       if(player.r>b.r*1.05){
         player.r+=b.r*.28;player.score+=b.score;
-        bots.splice(i,1);spawnBots(67);
+        rmBot(b);
       } else if(b.r>player.r*1.05&&!gulping){
         doGulp({x:b.x,y:b.y});
       }
@@ -611,22 +616,14 @@ function collisions(){
   }
 
   // Bot vs bot
-  // Bugfix: Correctly decrement 'i' and 'j' when array shrinks to prevent ghost collisions and skips
   for(let i=0;i<bots.length;i++){
-    let aEaten = false;
     for(let j=i+1;j<bots.length;j++){
       const a=bots[i],b=bots[j],d=Math.hypot(b.x-a.x,b.y-a.y);
       if(d<a.r+b.r-8){
-        if(a.r>b.r*1.05){
-          a.r+=b.r*.28;a.score+=b.score;
-          bots.splice(j,1);j--;spawnBots(67);
-        } else if(b.r>a.r*1.05){
-          b.r+=a.r*.28;b.score+=a.score;
-          bots.splice(i,1);aEaten=true;spawnBots(67);break;
-        }
+        if(a.r>b.r*1.12){a.r+=b.r*.28;a.score+=b.score;bots.splice(j,1);spawnBots(67);break;}
+        else if(b.r>a.r*1.12){b.r+=a.r*.28;b.score+=a.score;bots.splice(i,1);spawnBots(67);break;}
       }
     }
-    if(aEaten) i--; 
   }
 
   // Player vs net players
@@ -662,8 +659,8 @@ function procGulp(){
   player.y+=(gulpEnemy.y-player.y)*.13;
   if(Math.hypot(player.x-gulpEnemy.x,player.y-gulpEnemy.y)<20){
     pVisible=false;gover=true;gulping=false;gulpEnemy=null;
-    const gs=document.getElementById('go-score');if(gs)gs.textContent=fmt(player.score);
-    const go=document.getElementById('gameover');if(go)go.className='on';
+    document.getElementById('go-score').textContent=fmt(player.score);
+    document.getElementById('gameover').className='on';
     saveFinal();
   }
 }
@@ -677,6 +674,7 @@ async function saveFinal(){
   }catch(e){}
 }
 
+function rmBot(b){bots=bots.filter(x=>x!==b);spawnBots(67);}
 function clamp(o){o.x=Math.max(o.r+2,Math.min(WORLD-o.r-2,o.x));o.y=Math.max(o.r+2,Math.min(WORLD-o.r-2,o.y));}
 
 export function restartGame(){
@@ -687,7 +685,7 @@ export function restartGame(){
   recentKills=new Set();keys={};
   bots=[];foods=[];viruses=[];
   spawnFood(4320);spawnBots(67);spawnViruses(43);
-  const go=document.getElementById('gameover');if(go)go.className='';
+  document.getElementById('gameover').className='';
   setSk('sk-q','rdy');setSk('sk-sp','rdy');
   // Re-register as alive, clear kill event
   update(ref(db,'players/'+state.myId),{alive:true,x:Math.round(player.x),y:Math.round(player.y),r:30,ts:Date.now()});
@@ -808,38 +806,17 @@ function interpolateNetPlayers(){
 }
 
 function drawMinimap(){
-  // Canvas is 120x120 in HTML — scale world coords down to fit
   const MW=160,s=MW/WORLD;
   if(mmc.width!==MW){mmc.width=MW;mmc.height=MW;}
   mmx.clearRect(0,0,MW,MW);
   mmx.fillStyle='rgba(4,4,16,.95)';mmx.fillRect(0,0,MW,MW);
-  // Food — skip every 4th for perf, fixed 2×2 dot
-  for(let i=0;i<foods.length;i+=4){
-    const f=foods[i];
-    mmx.fillStyle=f.color;
-    mmx.fillRect(f.x*s,f.y*s,2,2);
-  }
-  // Bots — fixed radius 2.5px so they're always visible regardless of r*s being tiny
-  bots.forEach(b=>{
-    mmx.fillStyle=b.color||'#aaa';
-    mmx.beginPath();mmx.arc(b.x*s,b.y*s,2.5,0,Math.PI*2);mmx.fill();
-  });
-  // Net players
-  netPlayers.forEach(p=>{
-    mmx.fillStyle=p.color||'#fff';mmx.shadowBlur=4;mmx.shadowColor=p.color||'#fff';
-    mmx.beginPath();mmx.arc(p.x*s,p.y*s,3.5,0,Math.PI*2);mmx.fill();
-    mmx.shadowBlur=0;
-  });
-  // Player — bright teal, always visible
+  for(let i=0;i<foods.length;i+=4){const f=foods[i];mmx.fillStyle=f.color;mmx.fillRect(f.x*s,f.y*s,2,2);}
+  bots.forEach(b=>{mmx.fillStyle=b.color||'#aaa';mmx.beginPath();mmx.arc(b.x*s,b.y*s,2.5,0,Math.PI*2);mmx.fill();});
+  netPlayers.forEach(p=>{mmx.fillStyle=p.color||'#fff';mmx.shadowBlur=4;mmx.shadowColor=p.color||'#fff';mmx.beginPath();mmx.arc(p.x*s,p.y*s,3.5,0,Math.PI*2);mmx.fill();mmx.shadowBlur=0;});
   mmx.fillStyle='#00f5c4';mmx.shadowColor='#00f5c4';mmx.shadowBlur=10;
-  mmx.beginPath();mmx.arc(player.x*s,player.y*s,4,0,Math.PI*2);mmx.fill();
-  mmx.shadowBlur=0;
-  // Viewport box — shows what area is currently on screen
-  const vx=cam.x*s,vy=cam.y*s;
-  const vw=(blobCanvas.width/cam.z)*s,vh=(blobCanvas.height/cam.z)*s;
-  mmx.strokeStyle='rgba(0,245,196,.7)';mmx.lineWidth=1.5;
-  mmx.strokeRect(vx,vy,vw,vh);
-  // Border
+  mmx.beginPath();mmx.arc(player.x*s,player.y*s,4,0,Math.PI*2);mmx.fill();mmx.shadowBlur=0;
+  const vx=cam.x*s,vy=cam.y*s,vw=(blobCanvas.width/cam.z)*s,vh=(blobCanvas.height/cam.z)*s;
+  mmx.strokeStyle='rgba(0,245,196,.7)';mmx.lineWidth=1.5;mmx.strokeRect(vx,vy,vw,vh);
   mmx.strokeStyle='rgba(0,245,196,.25)';mmx.lineWidth=1;mmx.strokeRect(0,0,MW,MW);
 }
 
