@@ -1,13 +1,12 @@
 // ══ BOB ARENA ══
-import { db, ref, set, update, fbSet, fbGet, fbListen, fbOff, fbPush } from './firebase.js';
+// offline — no firebase
 import { state, showScreen, esc, fmt } from './state.js';
 
 export function openBlob(){showScreen('blob');initBlobLobby();}
 // (openTrivia/leaveTrivia defined in main.js)
 export function leaveBlob(){
   blobActive=false;blobIntervals.forEach(clearInterval);blobIntervals=[];
-  try{fbSet('players/'+state.myId+'/alive',false);fbSet('players/'+state.myId+'/ts',Date.now()-60000);fbOff('kills/'+state.myId);}catch(e){}
-  fbOff('players');fbOff('chat');
+  // offline
   document.getElementById('blob-lobby').style.display='flex';
   document.getElementById('game').style.display='none';
   showScreen('hub');
@@ -19,7 +18,7 @@ export function leaveBlob(){
 // ══════════════════════════════════════════════════
 // ══ BOB ARENA ══
 // ══════════════════════════════════════════════════
-const WORLD=5000;
+const WORLD=12000;
 let blobCanvas,blobCtx,mmc,mmx;
 let cam={x:0,y:0,z:1};
 let mouse={x:0,y:0};
@@ -183,8 +182,8 @@ function updatePreviews(){
   });
 }
 
-async function loadBlobLB(){
-  const lb=await fbGet('players')||{};
+function loadBlobLB(){
+  let lb={};try{lb=JSON.parse(localStorage.getItem('pdx_lb_arena'))||{};}catch{}
   const rows=Object.values(lb).sort((a,b)=>(b.best||0)-(a.best||0)).slice(0,6);
   const medals=['#1','#2','#3'];
   document.getElementById('lobby-lb').innerHTML=rows.length?rows.map((r,i)=>
@@ -225,7 +224,7 @@ async function startBlobGame(name,room){
   myName=name;myRoom=room;
   // Reset all game state cleanly
   gover=false;gulping=false;gulpEnemy=null;pVisible=true;
-  turboActive=false;turboReady=true;zoomActive=false;zoomReady=true;
+  turboActive=false;zoomActive=false;zoomReady=true;
   recentKills=new Set();netInterp={};
   bots=[];foods=[];viruses=[];
   keys={};
@@ -239,7 +238,7 @@ async function startBlobGame(name,room){
   blobCanvas.width=innerWidth;blobCanvas.height=innerHeight;
   mmc=document.getElementById('minimap');mmx=mmc.getContext('2d');
 
-  initPlayer();spawnFood(1800);spawnBots(28);spawnViruses(18);
+  initPlayer();spawnFood(4500);spawnBots(60);spawnViruses(40);
   setupBlobInput(); // safe - only registers once
 
   blobActive=true;
@@ -255,11 +254,8 @@ async function startBlobGame(name,room){
     const hs=document.getElementById('h-speed');if(hs)hs.textContent=player.speed.toFixed(1)+'x';
   },300));
 
-  await blobSyncStart();
-  blobSeenIds=new Set(); // reset so old chat messages don't replay
-  blobChatStart();
-
-  blobSysMsg(esc(myName)+' entered the arena!');
+  blobSeenIds=new Set();
+  blobOfflineHUD();
 
   // Start single game loop if not already running
   if(!blobLoopStarted){blobLoopStarted=true;blobGameLoop();}
@@ -318,118 +314,42 @@ function setSk(id,cls){const el=document.getElementById(id);if(el)el.className='
 // ── Sync ──
 let blobSeenIds=new Set();
 
-async function blobSyncStart(){
-  // Clear any stale kill event first
-  try{await set(ref(db,'kills/'+state.myId),null);}catch(e){}
 
-  // Write full profile
-  await fbSet('players/'+state.myId,{
-    id:state.myId,name:myName,emoji:myEmoji,symbol:mySymbol||'',color:myColor,
-    skin:mySkin,tagColor:myTagColor,tagBadge:myTagBadge||'',room:myRoom,
-    score:0,best:myBest,
-    x:Math.round(player.x),y:Math.round(player.y),r:30,
-    ts:Date.now(),alive:true
-  });
-
-  // Listen for all players
-  fbListen('players',snap=>{
-    if(!snap)return;
-    const now=Date.now();
-    lbData=snap;
-    const rawPlayers=Object.values(snap).filter(p=>
-      p.id&&p.id!==state.myId&&p.room===myRoom&&p.alive===true&&(now-p.ts)<8000
-    );
-
-    // Update interpolation targets
-    rawPlayers.forEach(p=>{
-      if(!netInterp[p.id]){
-        netInterp[p.id]={x:p.x,y:p.y,r:p.r||30,tx:p.x,ty:p.y,tr:p.r||30,...p};
-      } else {
-        netInterp[p.id].tx=p.x;
-        netInterp[p.id].ty=p.y;
-        netInterp[p.id].tr=p.r||30;
-        // Copy non-pos fields
-        netInterp[p.id].name=p.name;netInterp[p.id].emoji=p.emoji;
-        netInterp[p.id].color=p.color;netInterp[p.id].tagColor=p.tagColor;
-        netInterp[p.id].tagBadge=p.tagBadge;netInterp[p.id].score=p.score;
-      }
-    });
-    // Remove players who left
-    const activeIds=new Set(rawPlayers.map(p=>p.id));
-    Object.keys(netInterp).forEach(id=>{if(!activeIds.has(id))delete netInterp[id];});
-
-    netPlayers=Object.values(netInterp);
-    const rc=netPlayers.length+1;
-    document.getElementById('h-players').textContent=rc;
-    document.getElementById('room-players').textContent=rc;
-    updateBlobLB();
-  });
-
-  // Listen for kill events (being eaten by another player)
-  fbListen('kills/'+state.myId,data=>{
-    if(data&&data.ts&&(Date.now()-data.ts)<6000&&!gover&&!gulping){
-      blobSysMsg(esc(myName)+' was eaten by '+esc(data.killer||'someone')+'!');
-      doGulp({x:data.kx||player.x+60,y:data.ky||player.y+60});
-    }
-  });
-
-  // Fast position sync: batch all fields in one update()
-  blobIntervals.push(setInterval(async()=>{
-    if(gover||!blobActive)return;
-    try{
-      await update(ref(db,'players/'+state.myId),{
-        x:Math.round(player.x),y:Math.round(player.y),
-        r:Math.round(player.r),ts:Date.now()
-      });
-    }catch(e){}
-  },150));
-
-  // Score sync every 3s
-  blobIntervals.push(setInterval(async()=>{
-    if(gover||!blobActive)return;
-    myBest=Math.max(myBest,player.score);
-    try{
-      await update(ref(db,'players/'+state.myId),{
-        score:Math.round(player.score),best:myBest
-      });
-    }catch(e){}
-  },3000));
-}
-
-function blobChatStart(){
-  fbListen('chat',snap=>{
-    if(!snap)return;const el=document.getElementById('chat-msgs');
-    Object.values(snap).sort((a,b)=>a.ts-b.ts).filter(m=>!blobSeenIds.has(m.id)).forEach(m=>{
-      blobSeenIds.add(m.id);const d=document.createElement('div');
-      d.className='cmsg'+(m.sys?' sys':'');
-      if(m.sys)d.innerHTML='<span class="ct">'+esc(m.text)+'</span>';
-      else d.innerHTML='<span class="cn" style="color:'+(m.color||'#fff')+'">'+esc(m.user)+'</span> <span class="ct">'+esc(m.text)+'</span>';
-      el.appendChild(d);});el.scrollTop=el.scrollHeight;
-  });
-}
-export async function sendChat(){
-  const inp=document.getElementById('chat-inp'),txt=inp.value.trim();if(!txt)return;inp.value='';
-  await fbPush('chat',{id:Date.now()+state.myId,user:myName,text:txt,color:myColor,sys:false,ts:Date.now()});
-}
-async function blobSysMsg(txt){await fbPush('chat',{id:Date.now()+'sys'+state.myId,text:txt,sys:true,ts:Date.now()});}
-export function chatKey(e){e.stopPropagation();if(e.key==='Enter')sendChat();}
+export function sendChat(){}
+function blobSysMsg(txt){}
+export function chatKey(e){e.stopPropagation();}
 
 // ── Leaderboard ──
+function blobOfflineHUD(){
+  blobIntervals.push(setInterval(()=>{
+    if(gover)return;
+    document.getElementById('h-score').textContent=fmt(player.score);
+    document.getElementById('h-lvl').textContent=player.level;
+    const hs=document.getElementById('h-speed');if(hs)hs.textContent=player.speed.toFixed(1)+'x';
+    const hp=document.getElementById('h-players');if(hp)hp.textContent=bots.filter(b=>b.r>0).length+1;
+  },300));
+}
+
+function saveBlobScore(){
+  if(!myName)return;
+  let lb={};try{lb=JSON.parse(localStorage.getItem('pdx_lb_arena'))||{};}catch{}
+  const prev=lb[state.myId]||{};
+  lb[state.myId]={id:state.myId,name:myName,emoji:myEmoji,color:myColor,best:Math.max(myBest,prev.best||0)};
+  localStorage.setItem('pdx_lb_arena',JSON.stringify(lb));
+}
+
+
 export function setTab(t){blobTab=t;['global','room','friends'].forEach(x=>{document.getElementById('tab-'+x).className='sp-tab'+(x===t?' on':'');});updateBlobLB();}
 function updateBlobLB(){
-  const el=document.getElementById('lb-list');
-  if(blobTab==='friends'){el.innerHTML=renderFriendsBlob();return;}
-  const now=Date.now();
-  let entries=Object.values(lbData).filter(p=>(now-p.ts)<10000&&p.alive===true);
-  if(blobTab==='room')entries=entries.filter(p=>p.room===myRoom);
-  const botEnt=bots.sort((a,b)=>b.score-a.score).slice(0,4).map(b=>({id:'b'+b.id,name:'Bot',emoji:b.emoji,color:b.color||'#888',score:b.score,room:myRoom}));
-  entries=[...entries,...botEnt].sort((a,b)=>b.score-a.score);
-  let myIdx=entries.findIndex(e=>e.id===state.myId);
-  if(myIdx<0){entries.push({id:state.myId,name:myName,emoji:myEmoji,color:myColor,score:player.score,room:myRoom});entries.sort((a,b)=>b.score-a.score);myIdx=entries.findIndex(e=>e.id===state.myId);}
+  const el=document.getElementById('lb-list'); if(!el)return;
+  const botEnt=bots.slice().sort((a,b)=>b.score-a.score).slice(0,8).map(b=>({id:'b'+b.id,name:'Bot',emoji:b.emoji,color:b.color||'#888',score:b.score}));
+  let entries=[...botEnt,{id:state.myId,name:myName,emoji:myEmoji,color:myColor,score:player.score}];
+  entries.sort((a,b)=>b.score-a.score);
+  const myIdx=entries.findIndex(e=>e.id===state.myId);
   document.getElementById('h-rank').textContent='#'+(myIdx+1);
   const medals=['🥇','🥈','🥉'];
-  el.innerHTML=entries.slice(0,50).map((e,i)=>{const me=e.id===state.myId;
-    return'<div class="lbe'+(me?' mine':'')+'"><div class="lbe-num">'+(medals[i]||i+1)+'</div><div class="lbe-em">'+(e.emoji||'○')+'</div><div class="lbe-info"><div class="lbe-name" style="color:'+(me?'var(--c1)':e.color||'#fff')+'">'+esc(e.name)+(me?' ◀':'')+'</div>'+(blobTab==='global'?'<div class="lbe-tag">'+(e.room||'')+'</div>':'')+'</div><div class="lbe-pts">'+fmt(e.score)+'</div></div>';
+  el.innerHTML=entries.slice(0,12).map((e,i)=>{const me=e.id===state.myId;
+    return'<div class="lbe'+(me?' mine':'')+'"><div class="lbe-num">'+(medals[i]||i+1)+'</div><div class="lbe-em">'+(e.emoji||'○')+'</div><div class="lbe-info"><div class="lbe-name" style="color:'+(me?'var(--c1)':e.color||'#fff')+'">'+esc(e.name)+(me?' ◀':'')+'</div></div><div class="lbe-pts">'+fmt(e.score)+'</div></div>';
   }).join('');
 }
 function renderFriendsBlob(){
@@ -439,12 +359,12 @@ function renderFriendsBlob(){
 // ── Spawn ──
 function spawnFood(n=300){for(let i=0;i<n;i++)foods.push({x:Math.random()*WORLD,y:Math.random()*WORLD,r:2+Math.random()*3.5,color:foodCols[Math.random()*foodCols.length|0]});}
 function spawnViruses(n=18){for(let i=0;i<n;i++)viruses.push({x:100+Math.random()*(WORLD-200),y:100+Math.random()*(WORLD-200),r:62});}
-function spawnBots(n=28){for(let i=bots.length;i<n;i++){const s=16+Math.random()*22;bots.push({x:100+Math.random()*(WORLD-200),y:100+Math.random()*(WORLD-200),r:s,speed:1.0+Math.random()*1.0,emoji:emojis[Math.floor(Math.random()*emojis.length)],color:blobCols[Math.floor(Math.random()*blobCols.length)],id:bid++,score:s*8,name:'Bot'});}}
+function spawnBots(n=60){for(let i=bots.length;i<n;i++){const s=14+Math.random()*28;const sp=1.2+Math.random()*1.2;bots.push({x:200+Math.random()*(WORLD-400),y:200+Math.random()*(WORLD-400),r:s,speed:sp,baseSpeed:sp,emoji:emojis[Math.floor(Math.random()*emojis.length)],color:blobCols[Math.floor(Math.random()*blobCols.length)],id:bid++,score:s*8,name:'Bot',wander:Math.random()*Math.PI*2,wanderTimer:0});}}
 
 // ── Game Logic ──
 function movePlayer(){
   if(gulping)return;
-  const spd=Math.max(0.6,player.speed*Math.pow(28/Math.max(player.r,28),0.75));
+  const spd=Math.max(1.2,player.speed*Math.pow(30/Math.max(player.r,30),0.45));
   let kdx=0,kdy=0;
   if(keys.ArrowLeft||keys.KeyA)kdx-=1;
   if(keys.ArrowRight||keys.KeyD)kdx+=1;
@@ -458,19 +378,24 @@ function movePlayer(){
   else if(md>3){dx=mdx;dy=mdy;d=md;}
   else{clamp(player);checkLvl();return;}
 
-  if(keys.Space&&turboReady&&player.r>22){
+  const spawnR=30;
+  const canTurbo=player.r>spawnR+2;
+  if(keys.Space&&canTurbo){
     if(!turboActive){turboActive=true;setSk('sk-sp','act');blobNotif('TURBO!');}
-    player.x+=dx/d*spd*3;player.y+=dy/d*spd*3;
-    player.r=Math.max(20,player.r-0.15);
-    if(Math.random()<.35)foods.push({
-      x:player.x-(dx/d)*player.r*.85+(Math.random()*10-5),
-      y:player.y-(dy/d)*player.r*.85+(Math.random()*10-5),
-      r:4,color:player.color||'#00f5c4'});
-  } else {
-    if(turboActive){
-      turboActive=false;turboReady=false;setSk('sk-sp','cd');
-      setTimeout(()=>{turboReady=true;setSk('sk-sp','rdy');blobNotif('Turbo ready!');},4000);
+    player.x+=dx/d*spd*3.2;player.y+=dy/d*spd*3.2;
+    // Drain size — eject mass as food trail
+    player.r=Math.max(spawnR,player.r-0.45);
+    player.score=Math.max(0,player.score-3);
+    if(Math.random()<.55)foods.push({
+      x:player.x-(dx/d)*player.r*.9+(Math.random()*12-6),
+      y:player.y-(dy/d)*player.r*.9+(Math.random()*12-6),
+      r:5,color:player.color||'#00f5c4'});
+    // Auto-stop when back to spawn size
+    if(player.r<=spawnR+1){
+      turboActive=false;setSk('sk-sp','rdy');blobNotif('Turbo exhausted!');
     }
+  } else {
+    if(turboActive){turboActive=false;setSk('sk-sp','rdy');}
     player.x+=dx/d*spd;player.y+=dy/d*spd;
   }
   clamp(player);checkLvl();
@@ -479,7 +404,7 @@ function movePlayer(){
 function checkLvl(){
   if(player.score>=player.level*400){
     player.level++;
-    bots.forEach(b=>b.speed=Math.min(2.5,b.speed+.015));
+    bots.forEach(b=>{b.speed=Math.min(3.0,b.speed+0.04);b.baseSpeed=b.speed;});
     const p=document.createElement('div');p.className='lvl-popup';p.textContent='LVL '+player.level;
     document.getElementById('game').appendChild(p);setTimeout(()=>p.remove(),2100);
   }
@@ -488,21 +413,77 @@ function checkLvl(){
 function moveBots(){
   for(let i=0;i<bots.length;i++){
     const b=bots[i];
-    // Find closest target (chase smaller, flee bigger)
-    let tx=player.x,ty=player.y,best=Infinity,flee=player.r>b.r*1.2;
+    const bSpd=Math.max(0.5,b.speed*Math.pow(30/Math.max(b.r,30),0.45));
+
+    // ── Threat check: is player or any big bot nearby? ──
+    let fleeTarget=null,fleeDistSq=Infinity;
+    const threatR=b.r*2.8; // detection radius
+    const threatSq=threatR*threatR;
+
+    // Check player as threat
+    const pdSq=Math.hypot(player.x-b.x,player.y-b.y);
+    if(player.r>b.r*1.15&&pdSq<threatSq){fleeTarget={x:player.x,y:player.y};fleeDistSq=pdSq*pdSq;}
+    // Check other bots as threat
     for(let j=0;j<bots.length;j++){
       if(i===j)continue;
-      const o=bots[j],dd=Math.hypot(o.x-b.x,o.y-b.y);
-      if(dd<best){best=dd;tx=o.x;ty=o.y;flee=(o.r>b.r*1.2);}
+      const o=bots[j],dSq=(o.x-b.x)**2+(o.y-b.y)**2;
+      if(o.r>b.r*1.15&&dSq<threatSq&&dSq<fleeDistSq){fleeTarget={x:o.x,y:o.y};fleeDistSq=dSq;}
     }
     // Flee viruses if large
     for(const v of viruses){
-      if(b.r>v.r*0.9&&Math.hypot(v.x-b.x,v.y-b.y)<220){tx=b.x*2-v.x;ty=b.y*2-v.y;flee=false;break;}
+      if(b.r>v.r*0.85&&Math.hypot(v.x-b.x,v.y-b.y)<280){fleeTarget={x:v.x,y:v.y};break;}
     }
-    const angle=Math.atan2(ty-b.y,tx-b.x);
-    const dir=flee?-1:1;
-    b.x+=Math.cos(angle)*b.speed*dir;
-    b.y+=Math.sin(angle)*b.speed*dir;
+
+    if(fleeTarget){
+      // FLEE: run directly away, boosted speed
+      const ang=Math.atan2(b.y-fleeTarget.y,b.x-fleeTarget.x);
+      b.x+=Math.cos(ang)*bSpd*1.6;
+      b.y+=Math.sin(ang)*bSpd*1.6;
+      b.wander=ang; // sync wander so there's no snap when fleeing ends
+      clamp(b);
+      continue;
+    }
+
+    // ── Hunt: find best food or smaller target ──
+    // Prefer nearest food cluster
+    b.wanderTimer=(b.wanderTimer||0)-1;
+    let huntX=null,huntY=null,bestPriority=-Infinity;
+
+    // Player as prey
+    if(b.r>player.r*1.15){
+      const pri=player.r-(Math.hypot(player.x-b.x,player.y-b.y)*0.01);
+      if(pri>bestPriority){bestPriority=pri;huntX=player.x;huntY=player.y;}
+    }
+    // Other bots as prey
+    for(let j=0;j<bots.length;j++){
+      if(i===j)continue;
+      const o=bots[j];
+      if(b.r>o.r*1.15){
+        const pri=o.r-(Math.hypot(o.x-b.x,o.y-b.y)*0.008);
+        if(pri>bestPriority){bestPriority=pri;huntX=o.x;huntY=o.y;}
+      }
+    }
+    // Nearest food
+    if(huntX===null){
+      let nearestFood=null,nfd=Infinity;
+      for(let fi=0;fi<foods.length;fi+=4){ // sample every 4th
+        const f=foods[fi],fd=Math.hypot(f.x-b.x,f.y-b.y);
+        if(fd<nfd){nfd=fd;nearestFood=f;}
+      }
+      if(nearestFood&&nfd<600){huntX=nearestFood.x;huntY=nearestFood.y;}
+    }
+
+    if(huntX!==null){
+      const ang=Math.atan2(huntY-b.y,huntX-b.x);
+      b.wander=ang;
+      b.x+=Math.cos(ang)*bSpd;
+      b.y+=Math.sin(ang)*bSpd;
+    } else {
+      // Wander
+      if(b.wanderTimer<=0){b.wander=(b.wander||0)+(Math.random()-.5)*1.2;b.wanderTimer=40+Math.random()*60;}
+      b.x+=Math.cos(b.wander)*bSpd*0.7;
+      b.y+=Math.sin(b.wander)*bSpd*0.7;
+    }
     clamp(b);
   }
 }
@@ -566,28 +547,6 @@ function collisions(){
     }
   }
 
-  // Player vs net players
-  for(const np of netPlayers){
-    if(!np.id)continue;
-    const nr=np.r||30;
-    const d=Math.hypot(player.x-np.x,player.y-np.y);
-    if(d<player.r+nr-10){
-      if(player.r>nr*1.15&&!recentKills.has(np.id)){
-        recentKills.add(np.id);
-        player.r+=nr*.22;player.score+=Math.round(nr*15);
-        blobNotif('Ate '+esc(np.name||'player')+'! +'+ Math.round(nr*15));
-        blobSysMsg(esc(myName)+' ate '+esc(np.name||'player')+'!');
-        // Notify them
-        fbSet('kills/'+np.id,{killer:myName,kx:Math.round(player.x),ky:Math.round(player.y),ts:Date.now()});
-        update(ref(db,'players/'+np.id),{alive:false,ts:Date.now()-10000});
-        setTimeout(()=>recentKills.delete(np.id),8000);
-      } else if(nr>player.r*1.15&&!gulping){
-        doGulp({x:np.x,y:np.y});
-      }
-    }
-  }
-}
-
 function doGulp(enemy){
   gulping=true;
   gulpEnemy={x:enemy.x,y:enemy.y};
@@ -605,14 +564,7 @@ function procGulp(){
   }
 }
 
-async function saveFinal(){
-  myBest=Math.max(myBest,player.score);
-  try{
-    await update(ref(db,'players/'+state.myId),{
-      score:0,alive:false,best:myBest,ts:Date.now()-30000
-    });
-  }catch(e){}
-}
+function saveFinal(){myBest=Math.max(myBest,player.score);saveBlobScore();}
 
 function rmBot(b){bots=bots.filter(x=>x!==b);spawnBots(28);}
 function clamp(o){o.x=Math.max(o.r+2,Math.min(WORLD-o.r-2,o.x));o.y=Math.max(o.r+2,Math.min(WORLD-o.r-2,o.y));}
@@ -621,21 +573,19 @@ export function restartGame(){
   player.x=findClearSpawn().x;player.y=findClearSpawn().y;
   player.r=30;player.score=0;player.level=1;
   pVisible=true;gover=false;gulping=false;gulpEnemy=null;
-  turboActive=false;turboReady=true;zoomActive=false;zoomReady=true;
+  turboActive=false;zoomActive=false;zoomReady=true;
   recentKills=new Set();keys={};
   bots=[];foods=[];viruses=[];
-  spawnFood(1800);spawnBots(28);spawnViruses(18);
+  spawnFood(4500);spawnBots(60);spawnViruses(40);
   document.getElementById('gameover').className='';
   setSk('sk-q','rdy');setSk('sk-sp','rdy');
   // Re-register as alive, clear kill event
-  update(ref(db,'players/'+state.myId),{alive:true,x:Math.round(player.x),y:Math.round(player.y),r:30,ts:Date.now()});
-  set(ref(db,'kills/'+state.myId),null);
-  blobSysMsg(esc(myName)+' is back!');
+  // offline
 }
 
 // ── Camera ──
 function camFollow(){
-  const tz=zoomActive?Math.min(0.35,blobCanvas.width/WORLD*2):Math.max(0.18,0.95-player.r/400);
+  const tz=zoomActive?Math.min(0.22,blobCanvas.width/WORLD*3):Math.max(0.08,0.55-player.r/600);
   cam.z+=(tz-cam.z)*.07;
   cam.x=player.x-blobCanvas.width/(2*cam.z);
   cam.y=player.y-blobCanvas.height/(2*cam.z);
@@ -746,16 +696,11 @@ function interpolateNetPlayers(){
 }
 
 function drawMinimap(){
-  const s=120/WORLD;
+  const s=130/WORLD;
   mmx.clearRect(0,0,120,120);mmx.fillStyle='rgba(5,5,18,.92)';mmx.fillRect(0,0,120,120);
   foods.forEach(f=>{mmx.fillStyle=f.color;mmx.fillRect(f.x*s,f.y*s,1.2,1.2);});
   bots.forEach(b=>{mmx.fillStyle=b.color||'#888';mmx.beginPath();mmx.arc(b.x*s,b.y*s,Math.max(.8,b.r*s*1.8),0,Math.PI*2);mmx.fill();});
-  netPlayers.forEach(p=>{
-    mmx.fillStyle=p.color||'#fff';
-    mmx.shadowBlur=4;mmx.shadowColor=p.color||'#fff';
-    mmx.beginPath();mmx.arc(p.x*s,p.y*s,Math.max(2,p.r*s*2),0,Math.PI*2);mmx.fill();
-    mmx.shadowBlur=0;
-  });
+  // offline
   mmx.fillStyle='#00f5c4';mmx.shadowColor='#00f5c4';mmx.shadowBlur=8;
   mmx.beginPath();mmx.arc(player.x*s,player.y*s,Math.max(2,player.r*s*2.5),0,Math.PI*2);mmx.fill();mmx.shadowBlur=0;
   mmx.strokeStyle='rgba(0,245,196,.3)';mmx.lineWidth=.8;
@@ -776,7 +721,7 @@ function blobDraw(){
   blobCtx.clearRect(0,0,blobCanvas.width,blobCanvas.height);
   drawBg();drawGrid();drawFoods();drawViruses();
   bots.forEach(b=>drawBlob(b));
-  netPlayers.forEach(p=>drawBlob(p,1));
+  // offline — no net players
   if(pVisible)drawBlob(player);
   drawMinimap();
 }
@@ -793,4 +738,3 @@ function blobNotif(txt){
   el.textContent=txt;el.className='on';
   clearTimeout(blobNotifT);blobNotifT=setTimeout(()=>el.className='',2800);
 }
-
