@@ -517,7 +517,7 @@ body{background:var(--bg);font-family:'DM Sans',sans-serif;color:#fff;overflow:h
 .sk.rdy{border-color:rgba(0,245,196,0.4);}
 .sk.act{border-color:var(--c1);box-shadow:0 0 20px rgba(0,245,196,0.4);background:rgba(0,245,196,0.08);}
 .sk.cd{opacity:.3;}
-#minimap{position:absolute;bottom:88px;right:260px;border-radius:12px;overflow:hidden;border:1px solid var(--border);z-index:10;}
+#minimap{position:absolute;bottom:88px;right:260px;border-radius:12px;overflow:hidden;border:1px solid var(--border);z-index:10;width:160px;height:160px;}
 #notif{position:absolute;top:72px;left:50%;transform:translateX(-50%);background:rgba(0,245,196,0.12);
   border:1px solid rgba(0,245,196,0.25);border-radius:8px;padding:7px 18px;font-family:'Orbitron',monospace;
   font-size:10px;letter-spacing:2px;color:var(--c1);opacity:0;transition:opacity .3s;pointer-events:none;z-index:20;}
@@ -689,29 +689,6 @@ body{background:var(--bg);font-family:'DM Sans',sans-serif;color:#fff;overflow:h
   font-family:'Orbitron',monospace;font-size:9px;letter-spacing:2px;
   color:rgba(255,255,255,.4);transition:all .2s;z-index:30;cursor:none;}
 #militia-screen .g-back:hover{color:#f43f5e;border-color:rgba(244,63,94,.6);}
-
-/* ── SNAKE ARENA ── */
-.app-card.snake::before{background:linear-gradient(90deg,#4ade80,#22d3ee);}
-.app-card.snake .app-name{color:#4ade80;}
-#snake-screen{background:#06091a;position:relative;overflow:hidden;}
-#snake-canvas{display:block;width:100%;height:100%;position:absolute;inset:0;}
-.snake-lobby{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:rgba(6,9,26,.96);z-index:10;}
-.snake-title{font:900 46px Orbitron,monospace;color:#4ade80;text-shadow:0 0 30px #4ade8066;letter-spacing:4px;}
-.snake-sub{font:600 13px Orbitron,monospace;color:rgba(255,255,255,.35);letter-spacing:2px;margin-top:-10px;}
-.snake-name-inp{background:rgba(255,255,255,.05);border:1.5px solid rgba(74,222,128,.25);border-radius:10px;color:#fff;font:600 14px Orbitron,monospace;padding:10px 18px;width:220px;outline:none;text-align:center;cursor:none;}
-.snake-name-inp:focus{border-color:rgba(74,222,128,.7);}
-.snake-play-btn{background:linear-gradient(135deg,#4ade80,#22d3ee);border:none;border-radius:12px;color:#06091a;font:900 15px Orbitron,monospace;letter-spacing:2px;padding:14px 40px;cursor:none;box-shadow:0 0 28px #4ade8055;transition:.2s;}
-.snake-play-btn:hover{transform:scale(1.04);box-shadow:0 0 40px #4ade8088;}
-.snake-tips{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;max-width:500px;}
-.snake-tip{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px 16px;font:600 10px Orbitron,monospace;color:rgba(255,255,255,.4);text-align:center;letter-spacing:1px;}
-.snake-tip span{display:block;font-size:18px;margin-bottom:4px;}
-.snake-gameover{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(6,9,26,.92);z-index:20;}
-.sgo-title{font:900 38px Orbitron,monospace;color:#f43f5e;text-shadow:0 0 24px #f43f5e88;letter-spacing:3px;}
-.sgo-stats{display:flex;gap:30px;}
-.sgo-stat{text-align:center;}
-.sgo-val{font:900 28px Orbitron,monospace;color:#4ade80;}
-.sgo-lbl{font:600 9px Orbitron,monospace;color:rgba(255,255,255,.3);letter-spacing:2px;margin-top:2px;}
-.sgo-btns{display:flex;gap:12px;margin-top:8px;}
 #militia-lobby{position:absolute;inset:0;display:flex;flex-direction:column;
   align-items:center;justify-content:center;padding:70px 16px 20px;
   background:radial-gradient(ellipse 80% 60% at 50% 50%,#1a0508 0%,#050d05 70%);z-index:10;}
@@ -915,22 +892,6 @@ body{background:var(--bg);font-family:'DM Sans',sans-serif;color:#fff;overflow:h
         <div class="app-name">MILITIA</div>
         <div class="app-sub">2D Shooter · Jetpack · Bots</div>
       </div>
-      <div class="app-card snake" onclick="openSnake()">
-        <div class="app-icon"><svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M8 44 Q8 28 24 28 Q40 28 40 16 Q40 8 32 8" stroke="#4ade80" stroke-width="5.5" stroke-linecap="round" fill="none" opacity="0.9"/>
-          <path d="M8 44 Q8 28 24 28 Q40 28 40 16 Q40 8 32 8" stroke="#22d3ee" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.45"/>
-          <circle cx="32" cy="8" r="6" fill="#4ade80" opacity="0.9"/>
-          <circle cx="29.5" cy="6" r="1.8" fill="#06091a"/>
-          <circle cx="34.5" cy="6" r="1.8" fill="#06091a"/>
-          <circle cx="29.8" cy="5.5" r="0.7" fill="#fff"/>
-          <circle cx="34.8" cy="5.5" r="0.7" fill="#fff"/>
-          <circle cx="20" cy="44" r="3" fill="#4ade80" opacity="0.3"/>
-          <circle cx="10" cy="36" r="2" fill="#4ade80" opacity="0.18"/>
-          <circle cx="36" cy="20" r="2.5" fill="#22d3ee" opacity="0.35"/>
-        </svg></div>
-        <div class="app-name">SNAKE ARENA</div>
-        <div class="app-sub">Slither · Big eats small · Bots</div>
-      </div>
     </div>
   </div>
   <div class="hub-footer">by <span>Sree</span> · Paradox Hub</div>
@@ -1052,7 +1013,7 @@ body{background:var(--bg);font-family:'DM Sans',sans-serif;color:#fff;overflow:h
       <div class="sk rdy" id="sk-q"><span style="font-family:Orbitron,monospace;font-size:9px;letter-spacing:1px">ZM</span><span class="sk-key">Q</span></div>
       <div class="sk rdy" id="sk-sp"><span style="font-family:Orbitron,monospace;font-size:9px;letter-spacing:1px">DSH</span><span class="sk-key">SPC</span></div>
     </div>
-    <canvas id="minimap" width="120" height="120"></canvas>
+    <canvas id="minimap" width="160" height="160"></canvas>
     <div id="gameover">
       <div class="go-card">
         <h1>EATEN!</h1>
@@ -1254,44 +1215,6 @@ body{background:var(--bg);font-family:'DM Sans',sans-serif;color:#fff;overflow:h
   </div>
 </div>
 
-
-<!-- ══ SNAKE ARENA ══ -->
-<div id="snake-screen" class="screen">
-  <button class="g-back" style="position:absolute;top:16px;left:16px;z-index:30;background:rgba(13,13,31,.85);border:1px solid rgba(74,222,128,.25);border-radius:50px;padding:7px 16px;font-family:Orbitron,monospace;font-size:9px;letter-spacing:2px;color:rgba(255,255,255,.4);transition:all .2s;cursor:none;" onclick="leaveSnake()" onmouseover="this.style.color='#4ade80';this.style.borderColor='rgba(74,222,128,.6)'" onmouseout="this.style.color='rgba(255,255,255,.4)';this.style.borderColor='rgba(74,222,128,.25)'">← Hub</button>
-
-  <!-- Lobby -->
-  <div id="snake-lobby" class="snake-lobby">
-    <div class="snake-title">SNAKE ARENA</div>
-    <div class="snake-sub">SLITHER · BIG EATS SMALL</div>
-    <input id="snake-name-inp" class="snake-name-inp" type="text" placeholder="Enter your name" maxlength="14" autocomplete="off"/>
-    <button class="snake-play-btn" onclick="snakeStartGame()">▶ PLAY</button>
-    <div class="snake-tips">
-      <div class="snake-tip"><span>🖱️</span>MOUSE = STEER</div>
-      <div class="snake-tip"><span>⚡</span>CLICK / SPACE = BOOST</div>
-      <div class="snake-tip"><span>☠️</span>HIT BIGGER SNAKE = DEAD</div>
-      <div class="snake-tip"><span>🌀</span>COIL ENEMIES TO TRAP</div>
-    </div>
-  </div>
-
-  <!-- Game canvas -->
-  <div id="snake-game" style="display:none;position:absolute;inset:0;">
-    <canvas id="snake-canvas"></canvas>
-  </div>
-
-  <!-- Game Over -->
-  <div id="snake-gameover" class="snake-gameover">
-    <div class="sgo-title">YOU DIED</div>
-    <div class="sgo-stats">
-      <div class="sgo-stat"><div class="sgo-val" id="sgo-score">0</div><div class="sgo-lbl">SCORE</div></div>
-      <div class="sgo-stat"><div class="sgo-val" id="sgo-kills">0</div><div class="sgo-lbl">KILLS</div></div>
-    </div>
-    <div class="sgo-btns">
-      <button class="snake-play-btn" onclick="snakeRestartGame()">↺ PLAY AGAIN</button>
-      <button class="snake-play-btn" style="background:rgba(255,255,255,.07);color:#fff;box-shadow:none;" onclick="leaveSnake()">← HUB</button>
-    </div>
-  </div>
-</div>
-
 <!-- Stubs: ensure inline onclick attrs work before ES module loads -->
 <script>
 (function(){
@@ -1312,6 +1235,6 @@ body{background:var(--bg);font-family:'DM Sans',sans-serif;color:#fff;overflow:h
   window.T={show:function(){},render:function(){}};
 })();
 </script>
-<script type="module" src="./js/main.js"></script>
+<script type="module" src="main.js"></script>
 </body>
 </html>
